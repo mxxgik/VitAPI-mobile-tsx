@@ -1,6 +1,7 @@
 
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 const RegisterScreen: React.FC = () => {
   const [firstName, setFirstName] = useState("");
@@ -9,7 +10,9 @@ const RegisterScreen: React.FC = () => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState('patient');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleRegister = () => {
     if (!firstName || !lastName || !email || !phone || !password || !confirmPassword) {
@@ -88,6 +91,22 @@ const RegisterScreen: React.FC = () => {
         onChangeText={setConfirmPassword}
       />
 
+      <Text style={styles.label}>Select Role:</Text>
+      <View style={styles.roleContainer}>
+        <TouchableOpacity
+          style={[styles.roleButton, role === 'patient' && styles.roleButtonSelected]}
+          onPress={() => setRole('patient')}
+        >
+          <Text style={[styles.roleButtonText, role === 'patient' && styles.roleButtonTextSelected]}>Patient</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.roleButton, role === 'doctor' && styles.roleButtonSelected]}
+          onPress={() => setRole('doctor')}
+        >
+          <Text style={[styles.roleButtonText, role === 'doctor' && styles.roleButtonTextSelected]}>Doctor</Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity
         style={[styles.button, loading && { backgroundColor: "#9ac5cc" }]}
         onPress={handleRegister}
@@ -96,7 +115,7 @@ const RegisterScreen: React.FC = () => {
         <Text style={styles.buttonText}>{loading ? "Registering..." : "Register"}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity>
+      <TouchableOpacity onPress={() => router.push('/')}>
         <Text style={styles.link}>Already have an account? Login</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -154,5 +173,38 @@ const styles = StyleSheet.create({
     color: "#0077b6",
     fontSize: 15,
     marginTop: 6,
+  },
+  label: {
+    fontSize: 16,
+    color: "#555",
+    marginBottom: 8,
+    alignSelf: "flex-start",
+  },
+  roleContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginBottom: 16,
+  },
+  roleButton: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginHorizontal: 4,
+  },
+  roleButtonSelected: {
+    backgroundColor: "#00a896",
+    borderColor: "#00a896",
+  },
+  roleButtonText: {
+    color: "#555",
+    fontSize: 16,
+  },
+  roleButtonTextSelected: {
+    color: "#fff",
   },
 });
