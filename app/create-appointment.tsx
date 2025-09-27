@@ -10,7 +10,6 @@ interface Doctor {
   name: string;
   last_name: string;
   email: string;
-  // Add other fields as needed
 }
 
 const CreateAppointmentScreen: React.FC = () => {
