@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { apiService } from '../src/services/api';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState("");
