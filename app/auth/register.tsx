@@ -2,10 +2,12 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { apiService } from '../../src/services/api';
 
 const RegisterScreen: React.FC = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [identification, setIdentification] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -14,8 +16,8 @@ const RegisterScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleRegister = () => {
-    if (!firstName || !lastName || !email || !phone || !password || !confirmPassword) {
+  const handleRegister = async () => {
+    if (!firstName || !lastName || !email || !phone || !password || !confirmPassword || !identification) {
       Alert.alert("Missing fields", "Please complete all fields.");
       return;
     }
@@ -26,11 +28,27 @@ const RegisterScreen: React.FC = () => {
 
     setLoading(true);
 
-    // Simulate registration API call
-    setTimeout(() => {
+    try {
+      const response = await apiService.register({
+        name: firstName,
+        last_name: lastName,
+        identification, 
+        phone,
+        email,
+        password,
+        role,
+      });
       setLoading(false);
-      Alert.alert("Registration successful", `Welcome aboard, ${firstName}!`);
-    }, 1500);
+      if (response.success) {
+        Alert.alert("Registration successful", `Welcome aboard, ${firstName}!`);
+        router.push('/');
+      } else {
+        Alert.alert("Registration failed", response.message);
+      }
+    } catch (error) {
+      setLoading(false);
+      Alert.alert("Registration failed", "An error occurred" + error);
+    }
   };
 
   return (
@@ -52,6 +70,14 @@ const RegisterScreen: React.FC = () => {
         placeholderTextColor="#888"
         value={lastName}
         onChangeText={setLastName}
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Identification"
+        placeholderTextColor="#888"
+        value={identification}
+        onChangeText={setIdentification}
       />
 
       <TextInput
