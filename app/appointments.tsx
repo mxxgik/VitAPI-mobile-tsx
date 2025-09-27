@@ -1,15 +1,78 @@
-import { useLocalSearchParams } from 'expo-router';
-import React from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { Appointment, getAppointmentsForUser } from '../src/data/appointments';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { apiService } from '../src/services/api';
+
+interface ApiAppointment {
+  id: number;
+  patient_user_id: number;
+  user_id: number;
+  appointment_date_time: string;
+  reason: string;
+  status: string;
+}
+
+interface Appointment extends ApiAppointment {
+  date: string;
+  time: string;
+  doctorName: string;
+  patientName: string;
+}
 
 const AppointmentsScreen: React.FC = () => {
-  const { role } = useLocalSearchParams<{ role: string }>();
+  const { role, userId } = useLocalSearchParams<{ role: string; userId: string }>();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  // Mock user names for demo
-  const userName = role === 'patient' ? 'John Doe' : 'Dr. Smith';
+  console.log('Role:', role, 'UserId:', userId);
 
-  const appointments = getAppointmentsForUser(role as 'patient' | 'doctor', userName);
+  const handleLogout = async () => {
+    try {
+      await apiService.logout();
+      router.replace('/');
+    } catch (error) {
+      console.error('Logout failed', error);
+      // Still redirect
+      router.replace('/');
+    }
+  };
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        const response = await apiService.getAppointments();
+        if (response.success) {
+          const apiAppointments: ApiAppointment[] = response.data as ApiAppointment[];
+          // Filter appointments based on role
+          let filtered = apiAppointments;
+          if (role === 'patient') {
+            filtered = apiAppointments.filter((apt) => apt.patient_user_id === parseInt(userId));
+          } else {
+            filtered = apiAppointments.filter((apt) => apt.user_id === parseInt(userId));
+          }
+          // Map to display format
+          const displayAppointments: Appointment[] = filtered.map((apt) => {
+            const dateTime = new Date(apt.appointment_date_time);
+            return {
+              ...apt,
+              date: dateTime.toLocaleDateString(),
+              time: dateTime.toLocaleTimeString(),
+              doctorName: `Doctor ${apt.user_id}`, // Placeholder
+              patientName: `Patient ${apt.patient_user_id}`, // Placeholder
+            };
+          });
+          setAppointments(displayAppointments);
+        }
+      } catch (error) {
+        console.error('Failed to fetch appointments', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAppointments();
+  }, [role, userId]);
 
   const renderAppointment = ({ item }: { item: Appointment }) => (
     <View style={styles.appointmentItem}>
@@ -24,12 +87,22 @@ const AppointmentsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Upcoming Appointments</Text>
-      {appointments.length === 0 ? (
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutButtonText}>Logout</Text>
+      </TouchableOpacity>
+      {role === 'patient' && (
+        <TouchableOpacity style={styles.createButton} onPress={() => router.push(`/create-appointment?userId=${userId}` as any)}>
+          <Text style={styles.createButtonText}>Create New Appointment</Text>
+        </TouchableOpacity>
+      )}
+      {loading ? (
+        <Text style={styles.noAppointments}>Loading...</Text>
+      ) : appointments.length === 0 ? (
         <Text style={styles.noAppointments}>No upcoming appointments</Text>
       ) : (
         <FlatList
           data={appointments}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={renderAppointment}
         />
       )}
@@ -78,6 +151,31 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     marginTop: 50,
+  },
+  createButton: {
+    backgroundColor: '#00a896',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  logoutButton: {
+    backgroundColor: '#dc3545',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignSelf: 'flex-end',
+    marginBottom: 16,
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
