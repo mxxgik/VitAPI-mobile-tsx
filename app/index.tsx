@@ -1,3 +1,4 @@
+import { useUser } from '@/src/contexts/UserContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -8,6 +9,7 @@ const LoginScreen: React.FC = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { setUser } = useUser();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -21,6 +23,7 @@ const LoginScreen: React.FC = () => {
       setLoading(false);
       if (response.success) {
         console.log('Login response user_info:', response.user_info);
+        setUser(response.user_info);
         Alert.alert("Login successful", `Welcome back, ${response.user_info.name}`);
         router.push(`/appointments?role=${response.user_info.role}&userId=${response.user_info.id}`);
       } else {
