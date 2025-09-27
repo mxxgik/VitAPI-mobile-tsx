@@ -33,7 +33,6 @@ const AppointmentsScreen: React.FC = () => {
       router.replace('/');
     } catch (error) {
       console.error('Logout failed', error);
-      // Still redirect
       router.replace('/');
     }
   };
@@ -60,8 +59,8 @@ const AppointmentsScreen: React.FC = () => {
                 ...apt,
                 date: dateTime.toLocaleDateString(),
                 time: dateTime.toLocaleTimeString(),
-                doctorName: `Doctor ${apt.user_id}`, // Placeholder
-                patientName: `Patient ${apt.patient_user_id}`, // Placeholder
+                doctorName: `Doctor ${apt.user_id}`, 
+                patientName: `Patient ${apt.patient_user_id}`,
               };
             });
             setAppointments(displayAppointments);
