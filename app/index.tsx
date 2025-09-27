@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { authenticateUser } from '../src/data/users';
+import { apiService } from '../src/services/api';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -9,24 +10,27 @@ const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Missing fields", "Please enter email and password");
       return;
     }
     setLoading(true);
 
-    // Simulate authentication
-    setTimeout(() => {
-      const user = authenticateUser(email, password);
+    try {
+      const response = await apiService.login(email, password);
       setLoading(false);
-      if (user) {
-        Alert.alert("Login successful", `Welcome back, ${user.name}`);
-        router.push(`/appointments?role=${user.role}`);
+      if (response.success) {
+        console.log('Login response user_info:', response.user_info);
+        Alert.alert("Login successful", `Welcome back, ${response.user_info.name}`);
+        router.push(`/appointments?role=${response.user_info.role}&userId=${response.user_info.id}`);
       } else {
-        Alert.alert("Login failed", "Invalid email or password");
+        Alert.alert("Login failed", response.message);
       }
-    }, 1500);
+    } catch (error) {
+      setLoading(false);
+      Alert.alert("Login failed", "An error occurred" + error);
+    }
   };
 
   return (
@@ -59,6 +63,10 @@ const LoginScreen: React.FC = () => {
         disabled={loading}
       >
         <Text style={styles.buttonText}>{loading ? "Signing in..." : "Login"}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.push('/auth/register')}>
+        <Text style={styles.link}>Dont have an account? Register</Text>
       </TouchableOpacity>
     </View>
   );
@@ -107,6 +115,11 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "600",
+  },
+  link: {
+    color: "#0077b6",
+    fontSize: 15,
+    marginTop: 6,
   },
 });
 
