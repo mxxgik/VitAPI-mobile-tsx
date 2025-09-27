@@ -1,7 +1,8 @@
-import { useLocalSearchParams, useRouter, useFocusEffect} from 'expo-router';
+import { useUser } from '@/src/contexts/UserContext';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { apiService } from '../src/services/api';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { apiService } from '../../src/services/api';
 
 interface ApiAppointment {
   id: number;
@@ -19,27 +20,21 @@ interface Appointment extends ApiAppointment {
   patientName: string;
 }
 
-const AppointmentsScreen: React.FC = () => {
-  const { role, userId } = useLocalSearchParams<{ role: string; userId: string }>();
+const PastAppointmentsScreen: React.FC = () => {
+  const { user } = useUser();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  console.log('Role:', role, 'UserId:', userId);
+  const role = user?.role;
+  const userId = user?.id?.toString();
 
-  const handleLogout = async () => {
-    try {
-      await apiService.logout();
-      router.replace('/');
-    } catch (error) {
-      console.error('Logout failed', error);
-      router.replace('/');
-    }
-  };
-
+  console.log('Past Appointments - Role:', role, 'UserId:', userId);
+  console.log('Past Appointments - User from context:', user);
 
   useFocusEffect(
     React.useCallback(() => {
+      if (!userId) return;
       const fetchAppointments = async () => {
         try {
           const response = await apiService.getAppointments();
@@ -47,11 +42,15 @@ const AppointmentsScreen: React.FC = () => {
             const apiAppointments: ApiAppointment[] = response.data as ApiAppointment[];
             // Filter appointments based on role
             let filtered = apiAppointments;
+            console.log('Filtering past appointments - userId:', userId, 'type:', typeof userId);
             if (role === 'patient') {
               filtered = apiAppointments.filter((apt) => apt.patient_user_id === parseInt(userId));
             } else {
               filtered = apiAppointments.filter((apt) => apt.user_id === parseInt(userId));
             }
+            // Filter for past appointments (past dates)
+            const now = new Date();
+            filtered = filtered.filter((apt) => new Date(apt.appointment_date_time) < now);
             // Map to display format
             const displayAppointments: Appointment[] = filtered.map((apt) => {
               const dateTime = new Date(apt.appointment_date_time);
@@ -59,7 +58,7 @@ const AppointmentsScreen: React.FC = () => {
                 ...apt,
                 date: dateTime.toLocaleDateString(),
                 time: dateTime.toLocaleTimeString(),
-                doctorName: `Doctor ${apt.user_id}`, 
+                doctorName: `Doctor ${apt.user_id}`,
                 patientName: `Patient ${apt.patient_user_id}`,
               };
             });
@@ -88,19 +87,11 @@ const AppointmentsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Upcoming Appointments</Text>
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutButtonText}>Logout</Text>
-      </TouchableOpacity>
-      {role === 'patient' && (
-        <TouchableOpacity style={styles.createButton} onPress={() => router.push(`/create-appointment?userId=${userId}` as any)}>
-          <Text style={styles.createButtonText}>Create New Appointment</Text>
-        </TouchableOpacity>
-      )}
+      <Text style={styles.title}>Past Appointments</Text>
       {loading ? (
         <Text style={styles.noAppointments}>Loading...</Text>
       ) : appointments.length === 0 ? (
-        <Text style={styles.noAppointments}>No upcoming appointments</Text>
+        <Text style={styles.noAppointments}>No past appointments</Text>
       ) : (
         <FlatList
           data={appointments}
@@ -154,31 +145,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 50,
   },
-  createButton: {
-    backgroundColor: '#00a896',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  logoutButton: {
-    backgroundColor: '#dc3545',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignSelf: 'flex-end',
-    marginBottom: 16,
-  },
-  logoutButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
 });
 
-export default AppointmentsScreen;
+export default PastAppointmentsScreen;
