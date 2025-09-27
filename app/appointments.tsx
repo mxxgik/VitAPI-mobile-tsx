@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter, useFocusEffect} from 'expo-router';
+import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { apiService } from '../src/services/api';
 
@@ -38,41 +38,44 @@ const AppointmentsScreen: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        const response = await apiService.getAppointments();
-        if (response.success) {
-          const apiAppointments: ApiAppointment[] = response.data as ApiAppointment[];
-          // Filter appointments based on role
-          let filtered = apiAppointments;
-          if (role === 'patient') {
-            filtered = apiAppointments.filter((apt) => apt.patient_user_id === parseInt(userId));
-          } else {
-            filtered = apiAppointments.filter((apt) => apt.user_id === parseInt(userId));
-          }
-          // Map to display format
-          const displayAppointments: Appointment[] = filtered.map((apt) => {
-            const dateTime = new Date(apt.appointment_date_time);
-            return {
-              ...apt,
-              date: dateTime.toLocaleDateString(),
-              time: dateTime.toLocaleTimeString(),
-              doctorName: `Doctor ${apt.user_id}`, // Placeholder
-              patientName: `Patient ${apt.patient_user_id}`, // Placeholder
-            };
-          });
-          setAppointments(displayAppointments);
-        }
-      } catch (error) {
-        console.error('Failed to fetch appointments', error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchAppointments();
-  }, [role, userId]);
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchAppointments = async () => {
+        try {
+          const response = await apiService.getAppointments();
+          if (response.success) {
+            const apiAppointments: ApiAppointment[] = response.data as ApiAppointment[];
+            // Filter appointments based on role
+            let filtered = apiAppointments;
+            if (role === 'patient') {
+              filtered = apiAppointments.filter((apt) => apt.patient_user_id === parseInt(userId));
+            } else {
+              filtered = apiAppointments.filter((apt) => apt.user_id === parseInt(userId));
+            }
+            // Map to display format
+            const displayAppointments: Appointment[] = filtered.map((apt) => {
+              const dateTime = new Date(apt.appointment_date_time);
+              return {
+                ...apt,
+                date: dateTime.toLocaleDateString(),
+                time: dateTime.toLocaleTimeString(),
+                doctorName: `Doctor ${apt.user_id}`, // Placeholder
+                patientName: `Patient ${apt.patient_user_id}`, // Placeholder
+              };
+            });
+            setAppointments(displayAppointments);
+          }
+        } catch (error) {
+          console.error('Failed to fetch appointments', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchAppointments();
+    }, [role, userId])
+  );
 
   const renderAppointment = ({ item }: { item: Appointment }) => (
     <View style={styles.appointmentItem}>
