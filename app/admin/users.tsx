@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { apiService } from '../../src/services/api';
 
@@ -255,12 +256,15 @@ const UsersScreen: React.FC = () => {
                 maximumDate={new Date()}
               />
             )}
-            <TextInput
+            <Picker
+              selectedValue={formData.genero}
+              onValueChange={(itemValue) => setFormData({ ...formData, genero: itemValue })}
               style={styles.input}
-              placeholder="Gender (M/F)"
-              value={formData.genero}
-              onChangeText={(text) => setFormData({ ...formData, genero: text })}
-            />
+            >
+              <Picker.Item label="Male" value="M" />
+              <Picker.Item label="Female" value="F" />
+              <Picker.Item label="Other" value="Otro" />
+            </Picker>
             <TextInput
               style={styles.input}
               placeholder="Phone"

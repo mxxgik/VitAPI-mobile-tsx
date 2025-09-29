@@ -1,4 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -242,12 +243,15 @@ const AppointmentsScreen: React.FC = () => {
               value={formData.reason}
               onChangeText={(text) => setFormData({ ...formData, reason: text })}
             />
-            <TextInput
+            <Picker
+              selectedValue={formData.status}
+              onValueChange={(itemValue) => setFormData({ ...formData, status: itemValue })}
               style={styles.input}
-              placeholder="Status"
-              value={formData.status}
-              onChangeText={(text) => setFormData({ ...formData, status: text })}
-            />
+            >
+              <Picker.Item label="Scheduled" value="scheduled" />
+              <Picker.Item label="Cancelled" value="cancelled" />
+              <Picker.Item label="Finished" value="finished" />
+            </Picker>
             {showDatePicker && (
               <DateTimePicker
                 value={selectedDate}
