@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { apiService } from '../../src/services/api';
 
 interface Appointment {
@@ -24,13 +26,18 @@ const AppointmentsScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingItem, setEditingItem] = useState<Appointment | null>(null);
   const [formData, setFormData] = useState({
     patient_user_id: '',
     user_id: '',
-    appointment_date_time: '',
     reason: '',
     status: '',
   });
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const fetchAppointments = async () => {
     try {
@@ -47,36 +54,91 @@ const AppointmentsScreen: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchAppointments();
+    }, [])
+  );
 
-  const handleCreateAppointment = async () => {
+  const handleSubmitAppointment = async () => {
     try {
-      const response = await apiService.createAppointment({
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const timeStr = selectedTime.toTimeString().split(' ')[0].substring(0, 5);
+      const appointmentDateTime = `${dateStr} ${timeStr}`;
+      const appointmentData = {
         patient_user_id: parseInt(formData.patient_user_id),
         user_id: parseInt(formData.user_id),
-        appointment_date_time: formData.appointment_date_time,
+        appointment_date_time: appointmentDateTime,
         reason: formData.reason,
         status: formData.status,
-      });
+      };
+      const response = isEditing && editingItem
+        ? await apiService.updateAppointment(editingItem.id.toString(), appointmentData)
+        : await apiService.createAppointment(appointmentData);
       if (response.success) {
-        Alert.alert('Success', 'Appointment created successfully');
+        Alert.alert('Success', `Appointment ${isEditing ? 'updated' : 'created'} successfully`);
         setModalVisible(false);
+        setIsEditing(false);
+        setEditingItem(null);
         setFormData({
           patient_user_id: '',
           user_id: '',
-          appointment_date_time: '',
           reason: '',
           status: '',
         });
+        setSelectedDate(new Date());
+        setSelectedTime(new Date());
+        setShowDatePicker(false);
+        setShowTimePicker(false);
         fetchAppointments();
       } else {
-        Alert.alert('Error', response.message || 'Failed to create appointment');
+        Alert.alert('Error', response.message || `Failed to ${isEditing ? 'update' : 'create'} appointment`);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to create appointment' + error);
+      Alert.alert('Error', `Failed to ${isEditing ? 'update' : 'create'} appointment ` + error);
     }
+  };
+
+  const handleEditAppointment = (item: Appointment) => {
+    setIsEditing(true);
+    setEditingItem(item);
+    setFormData({
+      patient_user_id: item.patient_user_id.toString(),
+      user_id: item.user_id.toString(),
+      reason: item.reason,
+      status: item.status,
+    });
+    const dateTime = new Date(item.appointment_date_time);
+    setSelectedDate(dateTime);
+    setSelectedTime(dateTime);
+    setModalVisible(true);
+  };
+
+  const handleDeleteAppointment = async (id: number) => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this appointment?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await apiService.deleteAppointment(id.toString());
+              if (response.success) {
+                Alert.alert('Success', 'Appointment deleted successfully');
+                fetchAppointments();
+              } else {
+                Alert.alert('Error', response.message || 'Failed to delete appointment');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete appointment' + error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -103,12 +165,32 @@ const AppointmentsScreen: React.FC = () => {
       <Text>Date: {new Date(item.appointment_date_time).toLocaleString()}</Text>
       <Text>Reason: {item.reason}</Text>
       <Text>Status: {item.status}</Text>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.editButton} onPress={() => handleEditAppointment(item)}>
+          <Text style={styles.editButtonText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteAppointment(item.id)}>
+          <Text style={styles.deleteButtonText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   return (
     <View style={styles.content}>
-      <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity style={styles.addButton} onPress={() => {
+        setIsEditing(false);
+        setEditingItem(null);
+        setFormData({
+          patient_user_id: '',
+          user_id: '',
+          reason: '',
+          status: '',
+        });
+        setSelectedDate(new Date());
+        setSelectedTime(new Date());
+        setModalVisible(true);
+      }}>
         <Text style={styles.addButtonText}>Add New Appointment</Text>
       </TouchableOpacity>
       <FlatList
@@ -125,7 +207,7 @@ const AppointmentsScreen: React.FC = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>Add New Appointment</Text>
+            <Text style={styles.modalHeader}>{isEditing ? 'Edit Appointment' : 'Add New Appointment'}</Text>
             <TextInput
               style={styles.input}
               placeholder="Patient User ID"
@@ -140,12 +222,20 @@ const AppointmentsScreen: React.FC = () => {
               onChangeText={(text) => setFormData({ ...formData, user_id: text })}
               keyboardType="numeric"
             />
-            <TextInput
+            <Text style={styles.label}>Date:</Text>
+            <TouchableOpacity
               style={styles.input}
-              placeholder="Date Time (YYYY-MM-DD HH:MM:SS)"
-              value={formData.appointment_date_time}
-              onChangeText={(text) => setFormData({ ...formData, appointment_date_time: text })}
-            />
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={{ fontSize: 16, color: '#000' }}>{selectedDate.toLocaleDateString()}</Text>
+            </TouchableOpacity>
+            <Text style={styles.label}>Time:</Text>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Text style={{ fontSize: 16, color: '#000' }}>{selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+            </TouchableOpacity>
             <TextInput
               style={styles.input}
               placeholder="Reason"
@@ -158,12 +248,38 @@ const AppointmentsScreen: React.FC = () => {
               value={formData.status}
               onChangeText={(text) => setFormData({ ...formData, status: text })}
             />
+            {showDatePicker && (
+              <DateTimePicker
+                value={selectedDate}
+                mode="date"
+                display="default"
+                onChange={(event, date) => {
+                  setShowDatePicker(false);
+                  if (date) {
+                    setSelectedDate(date);
+                  }
+                }}
+              />
+            )}
+            {showTimePicker && (
+              <DateTimePicker
+                value={selectedTime}
+                mode="time"
+                display="default"
+                onChange={(event, date) => {
+                  setShowTimePicker(false);
+                  if (date) {
+                    setSelectedTime(date);
+                  }
+                }}
+              />
+            )}
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.submitButton} onPress={handleCreateAppointment}>
-                <Text style={styles.submitButtonText}>Create</Text>
+              <TouchableOpacity style={styles.submitButton} onPress={handleSubmitAppointment}>
+                <Text style={styles.submitButtonText}>{isEditing ? 'Update' : 'Create'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -251,6 +367,12 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 10,
     borderRadius: 5,
+    justifyContent: 'center',
+  },
+  label: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 8,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -279,6 +401,37 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: 'white',
     fontSize: 16,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  editButton: {
+    backgroundColor: '#007bff',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 5,
+  },
+  editButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    backgroundColor: '#dc3545',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 5,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { apiService } from '../../src/services/api';
 
 interface Specialty {
@@ -12,6 +13,8 @@ const SpecialtiesScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingItem, setEditingItem] = useState<Specialty | null>(null);
   const [specialty, setSpecialty] = useState('');
 
   const fetchSpecialties = async () => {
@@ -29,24 +32,64 @@ const SpecialtiesScreen: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchSpecialties();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchSpecialties();
+    }, [])
+  );
 
-  const handleCreateSpecialty = async () => {
+  const handleSubmitSpecialty = async () => {
     try {
-      const response = await apiService.createSpecialty({ specialty });
+      const response = isEditing && editingItem
+        ? await apiService.updateSpecialty(editingItem.id.toString(), { specialty })
+        : await apiService.createSpecialty({ specialty });
       if (response.success) {
-        Alert.alert('Success', 'Specialty created successfully');
+        Alert.alert('Success', `Specialty ${isEditing ? 'updated' : 'created'} successfully`);
         setModalVisible(false);
+        setIsEditing(false);
+        setEditingItem(null);
         setSpecialty('');
         fetchSpecialties();
       } else {
-        Alert.alert('Error', response.message || 'Failed to create specialty');
+        Alert.alert('Error', response.message || `Failed to ${isEditing ? 'update' : 'create'} specialty`);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to create specialty' + error);
+      Alert.alert('Error', `Failed to ${isEditing ? 'update' : 'create'} specialty ` + error);
     }
+  };
+
+  const handleEditSpecialty = (item: Specialty) => {
+    setIsEditing(true);
+    setEditingItem(item);
+    setSpecialty(item.specialty);
+    setModalVisible(true);
+  };
+
+  const handleDeleteSpecialty = async (id: number) => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this specialty?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await apiService.deleteSpecialty(id.toString());
+              if (response.success) {
+                Alert.alert('Success', 'Specialty deleted successfully');
+                fetchSpecialties();
+              } else {
+                Alert.alert('Error', response.message || 'Failed to delete specialty');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete specialty' + error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -68,12 +111,25 @@ const SpecialtiesScreen: React.FC = () => {
   const renderItem = ({ item }: { item: Specialty }) => (
     <View style={styles.item}>
       <Text style={styles.itemTitle}>{item.specialty}</Text>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.editButton} onPress={() => handleEditSpecialty(item)}>
+          <Text style={styles.editButtonText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteSpecialty(item.id)}>
+          <Text style={styles.deleteButtonText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   return (
     <View style={styles.content}>
-      <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity style={styles.addButton} onPress={() => {
+        setIsEditing(false);
+        setEditingItem(null);
+        setSpecialty('');
+        setModalVisible(true);
+      }}>
         <Text style={styles.addButtonText}>Add New Specialty</Text>
       </TouchableOpacity>
       <FlatList
@@ -90,7 +146,7 @@ const SpecialtiesScreen: React.FC = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>Add New Specialty</Text>
+            <Text style={styles.modalHeader}>{isEditing ? 'Edit Specialty' : 'Add New Specialty'}</Text>
             <TextInput
               style={styles.input}
               placeholder="Specialty Name"
@@ -101,8 +157,8 @@ const SpecialtiesScreen: React.FC = () => {
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.submitButton} onPress={handleCreateSpecialty}>
-                <Text style={styles.submitButtonText}>Create</Text>
+              <TouchableOpacity style={styles.submitButton} onPress={handleSubmitSpecialty}>
+                <Text style={styles.submitButtonText}>{isEditing ? 'Update' : 'Create'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -217,6 +273,37 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: 'white',
     fontSize: 16,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  editButton: {
+    backgroundColor: '#007bff',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 5,
+  },
+  editButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    backgroundColor: '#dc3545',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 5,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

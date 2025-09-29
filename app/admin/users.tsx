@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect } from '@react-navigation/native';
 import { apiService } from '../../src/services/api';
 
 interface User {
@@ -18,6 +20,9 @@ const UsersScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingItem, setEditingItem] = useState<User | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [formData, setFormData] = useState({
     entity_id: '',
     name: '',
@@ -44,13 +49,15 @@ const UsersScreen: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchUsers();
+    }, [])
+  );
 
-  const handleCreatePatient = async () => {
+  const handleSubmitPatient = async () => {
     try {
-      const response = await apiService.createPatient({
+      const patientData = {
         entity_id: parseInt(formData.entity_id),
         name: formData.name,
         last_name: formData.last_name,
@@ -59,10 +66,15 @@ const UsersScreen: React.FC = () => {
         genero: formData.genero,
         phone: formData.phone,
         email: formData.email,
-      });
+      };
+      const response = isEditing && editingItem
+        ? await apiService.updatePatient(editingItem.id.toString(), patientData)
+        : await apiService.createPatient(patientData);
       if (response.success) {
-        Alert.alert('Success', 'Patient created successfully');
+        Alert.alert('Success', `Patient ${isEditing ? 'updated' : 'created'} successfully`);
         setModalVisible(false);
+        setIsEditing(false);
+        setEditingItem(null);
         setFormData({
           entity_id: '',
           name: '',
@@ -75,11 +87,62 @@ const UsersScreen: React.FC = () => {
         });
         fetchUsers(); // Refresh list
       } else {
-        Alert.alert('Error', response.message || 'Failed to create patient');
+        Alert.alert('Error', response.message || `Failed to ${isEditing ? 'update' : 'create'} patient`);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to create patient ' + error);
+      Alert.alert('Error', `Failed to ${isEditing ? 'update' : 'create'} patient ` + error);
     }
+  };
+
+  const handleEditPatient = (item: User) => {
+    setIsEditing(true);
+    setEditingItem(item);
+    setFormData({
+      entity_id: '', // Not available in item
+      name: item.name,
+      last_name: item.last_name,
+      identification: item.identification,
+      dob: '', // Not available
+      genero: item.genero,
+      phone: item.phone,
+      email: item.email,
+    });
+    setModalVisible(true);
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    if (event.type === 'set' && selectedDate) {
+      const formattedDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      setFormData({ ...formData, dob: formattedDate });
+    }
+    setShowDatePicker(false);
+  };
+
+  const handleDeletePatient = async (id: number) => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this patient?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await apiService.deletePatient(id.toString());
+              if (response.success) {
+                Alert.alert('Success', 'Patient deleted successfully');
+                fetchUsers();
+              } else {
+                Alert.alert('Error', response.message || 'Failed to delete patient');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete patient' + error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -105,12 +168,34 @@ const UsersScreen: React.FC = () => {
       <Text>Phone: {item.phone}</Text>
       <Text>Identification: {item.identification}</Text>
       <Text>Gender: {item.genero}</Text>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.editButton} onPress={() => handleEditPatient(item)}>
+          <Text style={styles.editButtonText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeletePatient(item.id)}>
+          <Text style={styles.deleteButtonText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   return (
     <View style={styles.content}>
-      <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity style={styles.addButton} onPress={() => {
+        setIsEditing(false);
+        setEditingItem(null);
+        setFormData({
+          entity_id: '',
+          name: '',
+          last_name: '',
+          identification: '',
+          dob: '',
+          genero: '',
+          phone: '',
+          email: '',
+        });
+        setModalVisible(true);
+      }}>
         <Text style={styles.addButtonText}>Add New Patient</Text>
       </TouchableOpacity>
       <FlatList
@@ -127,7 +212,7 @@ const UsersScreen: React.FC = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>Add New Patient</Text>
+            <Text style={styles.modalHeader}>{isEditing ? 'Edit Patient' : 'Add New Patient'}</Text>
             <TextInput
               style={styles.input}
               placeholder="Entity ID"
@@ -153,12 +238,23 @@ const UsersScreen: React.FC = () => {
               value={formData.identification}
               onChangeText={(text) => setFormData({ ...formData, identification: text })}
             />
-            <TextInput
+            <TouchableOpacity
               style={styles.input}
-              placeholder="Date of Birth (YYYY-MM-DD)"
-              value={formData.dob}
-              onChangeText={(text) => setFormData({ ...formData, dob: text })}
-            />
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={{ color: formData.dob ? '#000' : '#999' }}>
+                {formData.dob || 'Select Date of Birth'}
+              </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={formData.dob ? new Date(formData.dob) : new Date()}
+                mode="date"
+                display="default"
+                onChange={onDateChange}
+                maximumDate={new Date()}
+              />
+            )}
             <TextInput
               style={styles.input}
               placeholder="Gender (M/F)"
@@ -182,8 +278,8 @@ const UsersScreen: React.FC = () => {
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.submitButton} onPress={handleCreatePatient}>
-                <Text style={styles.submitButtonText}>Create</Text>
+              <TouchableOpacity style={styles.submitButton} onPress={handleSubmitPatient}>
+                <Text style={styles.submitButtonText}>{isEditing ? 'Update' : 'Create'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -299,6 +395,37 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: 'white',
     fontSize: 16,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  editButton: {
+    backgroundColor: '#007bff',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 5,
+  },
+  editButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    backgroundColor: '#dc3545',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 5,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

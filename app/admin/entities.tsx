@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { apiService } from '../../src/services/api';
 
 interface Entity {
@@ -13,6 +14,8 @@ const EntitiesScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingItem, setEditingItem] = useState<Entity | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -33,24 +36,67 @@ const EntitiesScreen: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchEntities();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchEntities();
+    }, [])
+  );
 
-  const handleCreateEntity = async () => {
+  const handleSubmitEntity = async () => {
     try {
-      const response = await apiService.createEntity(formData);
+      const response = isEditing && editingItem
+        ? await apiService.updateEntity(editingItem.id.toString(), formData)
+        : await apiService.createEntity(formData);
       if (response.success) {
-        Alert.alert('Success', 'Entity created successfully');
+        Alert.alert('Success', `Entity ${isEditing ? 'updated' : 'created'} successfully`);
         setModalVisible(false);
+        setIsEditing(false);
+        setEditingItem(null);
         setFormData({ name: '', code: '' });
         fetchEntities();
       } else {
-        Alert.alert('Error', response.message || 'Failed to create entity');
+        Alert.alert('Error', response.message || `Failed to ${isEditing ? 'update' : 'create'} entity`);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to create entity' + error);
+      Alert.alert('Error', `Failed to ${isEditing ? 'update' : 'create'} entity ` + error);
     }
+  };
+
+  const handleEditEntity = (item: Entity) => {
+    setIsEditing(true);
+    setEditingItem(item);
+    setFormData({
+      name: item.name,
+      code: item.code,
+    });
+    setModalVisible(true);
+  };
+
+  const handleDeleteEntity = async (id: number) => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this entity?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await apiService.deleteEntity(id.toString());
+              if (response.success) {
+                Alert.alert('Success', 'Entity deleted successfully');
+                fetchEntities();
+              } else {
+                Alert.alert('Error', response.message || 'Failed to delete entity');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete entity' + error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -73,12 +119,25 @@ const EntitiesScreen: React.FC = () => {
     <View style={styles.item}>
       <Text style={styles.itemTitle}>{item.name}</Text>
       <Text>Code: {item.code}</Text>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.editButton} onPress={() => handleEditEntity(item)}>
+          <Text style={styles.editButtonText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteEntity(item.id)}>
+          <Text style={styles.deleteButtonText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   return (
     <View style={styles.content}>
-      <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity style={styles.addButton} onPress={() => {
+        setIsEditing(false);
+        setEditingItem(null);
+        setFormData({ name: '', code: '' });
+        setModalVisible(true);
+      }}>
         <Text style={styles.addButtonText}>Add New Entity</Text>
       </TouchableOpacity>
       <FlatList
@@ -95,7 +154,7 @@ const EntitiesScreen: React.FC = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>Add New Entity</Text>
+            <Text style={styles.modalHeader}>{isEditing ? 'Edit Entity' : 'Add New Entity'}</Text>
             <TextInput
               style={styles.input}
               placeholder="Name"
@@ -112,8 +171,8 @@ const EntitiesScreen: React.FC = () => {
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.submitButton} onPress={handleCreateEntity}>
-                <Text style={styles.submitButtonText}>Create</Text>
+              <TouchableOpacity style={styles.submitButton} onPress={handleSubmitEntity}>
+                <Text style={styles.submitButtonText}>{isEditing ? 'Update' : 'Create'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -229,6 +288,37 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: 'white',
     fontSize: 16,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  editButton: {
+    backgroundColor: '#007bff',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 5,
+  },
+  editButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    backgroundColor: '#dc3545',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 5,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 
