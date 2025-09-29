@@ -4,6 +4,8 @@ interface UserInfo {
   id: number;
   role: string;
   name: string;
+  email: string;
+  last_name: string;
   // Add other fields as needed
 }
 

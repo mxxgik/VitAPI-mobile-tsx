@@ -1,10 +1,11 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { apiService } from '../../src/services/api';
+import { useUser } from '../../src/contexts/UserContext';
 
 const ProfileScreen: React.FC = () => {
-  const { role, userId, name, lastName, email } = useLocalSearchParams<{ role: string; userId: string; name: string; lastName: string; email: string }>();
+  const { user } = useUser();
   const router = useRouter();
   
   const handleLogout = async () => {
@@ -23,19 +24,19 @@ const ProfileScreen: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.profileItem}>
         <Text style={styles.label}>Name:</Text>
-        <Text style={styles.value}>{name}</Text>
+        <Text style={styles.value}>{user?.name}</Text>
       </View>
       <View style={styles.profileItem}>
         <Text style={styles.label}>Last Name:</Text>
-        <Text style={styles.value}>{lastName}</Text>
+        <Text style={styles.value}>{user?.last_name}</Text>
       </View>
       <View style={styles.profileItem}>
         <Text style={styles.label}>Email:</Text>
-        <Text style={styles.value}>{email}</Text>
+        <Text style={styles.value}>{user?.email}</Text>
       </View>
       <View style={styles.profileItem}>
         <Text style={styles.label}>Role:</Text>
-        <Text style={styles.value}>{role}</Text>
+        <Text style={styles.value}>{user?.role}</Text>
       </View>
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutButtonText}>Logout</Text>

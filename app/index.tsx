@@ -28,7 +28,7 @@ const LoginScreen: React.FC = () => {
         if (response.user_info.role === 'admin') {
           router.push('/admin');
         } else {
-          router.push(`/appointments?role=${response.user_info.role}&userId=${response.user_info.id}`);
+          router.push('/appointments');
         }
       } else {
         Alert.alert("Login failed", response.message);

@@ -13,6 +13,14 @@ interface ApiAppointment {
   appointment_date_time: string;
   reason: string;
   status: string;
+  user?: {
+    name: string;
+    last_name: string;
+  };
+  patient?: {
+    name: string;
+    last_name: string;
+  };
 }
 
 interface Appointment extends ApiAppointment {
@@ -67,8 +75,8 @@ const AppointmentsScreen: React.FC = () => {
                 ...apt,
                 date: dateTime.toLocaleDateString(),
                 time: dateTime.toLocaleTimeString(),
-                doctorName: `Doctor ${apt.user_id}`,
-                patientName: `Patient ${apt.patient_user_id}`,
+                doctorName: apt.user ? `${apt.user.name} ${apt.user.last_name}` : `Doctor ${apt.user_id}`,
+                patientName: apt.patient ? `${apt.patient.name} ${apt.patient.last_name}` : `Patient ${apt.patient_user_id}`,
               };
             });
             setAppointments(displayAppointments);
@@ -129,8 +137,8 @@ const AppointmentsScreen: React.FC = () => {
               ...apt,
               date: dateTime.toLocaleDateString(),
               time: dateTime.toLocaleTimeString(),
-              doctorName: `Doctor ${apt.user_id}`,
-              patientName: `Patient ${apt.patient_user_id}`,
+              doctorName: apt.user ? `${apt.user.name} ${apt.user.last_name}` : `Doctor ${apt.user_id}`,
+              patientName: apt.patient ? `${apt.patient.name} ${apt.patient.last_name}` : `Patient ${apt.patient_user_id}`,
             };
           });
           setAppointments(displayAppointments);
@@ -176,8 +184,8 @@ const AppointmentsScreen: React.FC = () => {
                       ...apt,
                       date: dateTime.toLocaleDateString(),
                       time: dateTime.toLocaleTimeString(),
-                      doctorName: `Doctor ${apt.user_id}`,
-                      patientName: `Patient ${apt.patient_user_id}`,
+                      doctorName: apt.user ? `${apt.user.name} ${apt.user.last_name}` : `Doctor ${apt.user_id}`,
+                      patientName: apt.patient ? `${apt.patient.name} ${apt.patient.last_name}` : `Patient ${apt.patient_user_id}`,
                     };
                   });
                   setAppointments(displayAppointments);
@@ -223,7 +231,7 @@ const AppointmentsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       {role === 'patient' && (
-        <TouchableOpacity style={styles.createButton} onPress={() => router.push(`/create-appointment?userId=${userId}` as any)}>
+        <TouchableOpacity style={styles.createButton} onPress={() => router.push('/create-appointment')}>
           <Text style={styles.createButtonText}>Create New Appointment</Text>
         </TouchableOpacity>
       )}

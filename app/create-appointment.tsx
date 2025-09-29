@@ -1,9 +1,10 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { apiService } from '../src/services/api';
+import { useUser } from '../src/contexts/UserContext';
 
 interface Doctor {
   id: number;
@@ -13,8 +14,8 @@ interface Doctor {
 }
 
 const CreateAppointmentScreen: React.FC = () => {
+  const { user } = useUser();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const {userId} = useLocalSearchParams<{ userId: string }>();
   const [selectedDoctor, setSelectedDoctor] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(new Date());
@@ -47,6 +48,10 @@ const CreateAppointmentScreen: React.FC = () => {
   }, [doctors]);
 
   const handleCreate = async () => {
+    if (!user) {
+      Alert.alert('Error', 'User not logged in');
+      return;
+    }
     if (!selectedDoctor || !selectedDate || !selectedTime || !reason) {
       Alert.alert('Missing fields', 'Please fill all fields');
       return;
@@ -59,7 +64,7 @@ const CreateAppointmentScreen: React.FC = () => {
       const appointmentDateTime = `${dateStr} ${timeStr}`;
       console.log('Appointment DateTime:', appointmentDateTime);
       const response = await apiService.createAppointment({
-        patient_user_id: +userId,
+        patient_user_id: user.id,
         user_id: selectedDoctor,
         appointment_date_time: appointmentDateTime,
         reason,
