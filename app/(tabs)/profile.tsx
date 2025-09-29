@@ -5,7 +5,7 @@ import { apiService } from '../../src/services/api';
 import { useUser } from '../../src/contexts/UserContext';
 
 const ProfileScreen: React.FC = () => {
-  const { user } = useUser();
+  const { user, setUser } = useUser();
   const router = useRouter();
   
   const handleLogout = async () => {
@@ -13,9 +13,11 @@ const ProfileScreen: React.FC = () => {
     try {
       await apiService.logout();
       console.log('ProfileScreen: Logout successful');
+      setUser(null);
       router.replace('/');
     } catch (error) {
       console.error('Logout failed', error);
+      setUser(null);
       router.replace('/');
     }
   };
