@@ -1,7 +1,9 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import { useUser } from '@/src/contexts/UserContext';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { apiService } from '../../src/services/api';
 
 interface ApiAppointment {
@@ -24,6 +26,15 @@ const PastAppointmentsScreen: React.FC = () => {
   const { user } = useUser();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [editDate, setEditDate] = useState(new Date());
+  const [editTime, setEditTime] = useState(new Date());
+  const [editReason, setEditReason] = useState('');
+  const [editStatus, setEditStatus] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const router = useRouter();
 
   const role = user?.role;
@@ -48,9 +59,7 @@ const PastAppointmentsScreen: React.FC = () => {
             } else {
               filtered = apiAppointments.filter((apt) => apt.user_id === parseInt(userId));
             }
-            // Filter for past appointments (past dates)
-            const now = new Date();
-            filtered = filtered.filter((apt) => new Date(apt.appointment_date_time) < now);
+            filtered = filtered.filter((apt) => apt.status === 'cancelled' || apt.status === 'finished');
             // Map to display format
             const displayAppointments: Appointment[] = filtered.map((apt) => {
               const dateTime = new Date(apt.appointment_date_time);
@@ -75,6 +84,66 @@ const PastAppointmentsScreen: React.FC = () => {
     }, [role, userId])
   );
 
+  const openEditModal = (appointment: Appointment) => {
+    setEditingAppointment(appointment);
+    const dateTime = new Date(appointment.appointment_date_time);
+    setEditDate(dateTime);
+    setEditTime(dateTime);
+    setEditReason(appointment.reason);
+    setEditStatus(appointment.status);
+    setModalVisible(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingAppointment || !userId) return;
+    setUpdating(true);
+    try {
+      const dateStr = editDate.toISOString().split('T')[0];
+      const timeStr = editTime.toTimeString().split(' ')[0].substring(0, 5);
+      const appointmentDateTime = `${dateStr} ${timeStr}`;
+      const response = await apiService.updateAppointment(editingAppointment.id.toString(), {
+        patient_user_id: editingAppointment.patient_user_id,
+        user_id: editingAppointment.user_id,
+        appointment_date_time: appointmentDateTime,
+        reason: editReason,
+        status: editStatus,
+      });
+      setUpdating(false);
+      if (response.success) {
+        Alert.alert('Success', 'Appointment updated');
+        setModalVisible(false);
+        // Refresh the list
+        const fetchResponse = await apiService.getAppointments();
+        if (fetchResponse.success) {
+          const apiAppointments: ApiAppointment[] = fetchResponse.data as ApiAppointment[];
+          let filtered = apiAppointments;
+          if (role === 'patient') {
+            filtered = apiAppointments.filter((apt) => apt.patient_user_id === parseInt(userId));
+          } else {
+            filtered = apiAppointments.filter((apt) => apt.user_id === parseInt(userId));
+          }
+          filtered = filtered.filter((apt) => apt.status === 'cancelled' || apt.status === 'finished');
+          const displayAppointments: Appointment[] = filtered.map((apt) => {
+            const dateTime = new Date(apt.appointment_date_time);
+            return {
+              ...apt,
+              date: dateTime.toLocaleDateString(),
+              time: dateTime.toLocaleTimeString(),
+              doctorName: `Doctor ${apt.user_id}`,
+              patientName: `Patient ${apt.patient_user_id}`,
+            };
+          });
+          setAppointments(displayAppointments);
+        }
+      } else {
+        Alert.alert('Failed', response.message);
+      }
+    } catch (error) {
+      setUpdating(false);
+      Alert.alert('Error', 'Failed to update appointment ' + error);
+    }
+  };
+
   const renderAppointment = ({ item }: { item: Appointment }) => (
     <View style={styles.appointmentItem}>
       <Text style={styles.date}>{item.date} at {item.time}</Text>
@@ -82,6 +151,9 @@ const PastAppointmentsScreen: React.FC = () => {
         {role === 'patient' ? `Doctor: ${item.doctorName}` : `Patient: ${item.patientName}`}
       </Text>
       <Text style={styles.status}>Status: {item.status}</Text>
+      <TouchableOpacity style={styles.editButton} onPress={() => openEditModal(item)}>
+        <Text style={styles.editButtonText}>Edit</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -99,6 +171,92 @@ const PastAppointmentsScreen: React.FC = () => {
           renderItem={renderAppointment}
         />
       )}
+
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <ScrollView contentContainerStyle={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Edit Appointment</Text>
+
+          <Text style={styles.label}>Date:</Text>
+          <TouchableOpacity
+            style={styles.input}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={{ fontSize: 16, color: '#000' }}>{editDate.toLocaleDateString()}</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.label}>Time:</Text>
+          <TouchableOpacity
+            style={styles.input}
+            onPress={() => setShowTimePicker(true)}
+          >
+            <Text style={{ fontSize: 16, color: '#000' }}>{editTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+          </TouchableOpacity>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Reason"
+            value={editReason}
+            onChangeText={setEditReason}
+            multiline
+          />
+
+          <Text style={styles.label}>Status:</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={editStatus}
+              onValueChange={(itemValue) => setEditStatus(itemValue)}
+              style={styles.picker}
+            >
+              <Picker.Item label="scheduled" value="scheduled" />
+              <Picker.Item label="finished" value="finished" />
+              <Picker.Item label="cancelled" value="cancelled" />
+            </Picker>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.button, updating && { backgroundColor: '#9ac5cc' }]}
+            onPress={handleUpdate}
+            disabled={updating}
+          >
+            <Text style={styles.buttonText}>{updating ? 'Updating...' : 'Update Appointment'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: '#ccc' }]}
+            onPress={() => setModalVisible(false)}
+          >
+            <Text style={styles.buttonText}>Cancel</Text>
+          </TouchableOpacity>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={editDate}
+              mode="date"
+              display="default"
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date) setEditDate(date);
+              }}
+            />
+          )}
+
+          {showTimePicker && (
+            <DateTimePicker
+              value={editTime}
+              mode="time"
+              display="default"
+              onChange={(event, date) => {
+                setShowTimePicker(false);
+                if (date) setEditTime(date);
+              }}
+            />
+          )}
+        </ScrollView>
+      </Modal>
     </View>
   );
 };
@@ -144,6 +302,71 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     marginTop: 50,
+  },
+  editButton: {
+    marginTop: 8,
+    backgroundColor: '#00a896',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  editButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalContainer: {
+    flexGrow: 1,
+    backgroundColor: '#f6fbfc',
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#006d77',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  label: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 8,
+  },
+  input: {
+    width: '100%',
+    height: 48,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    fontSize: 16,
+    justifyContent: 'center',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+  },
+  picker: {
+    height: 50,
+  },
+  button: {
+    width: '100%',
+    backgroundColor: '#00a896',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
 
