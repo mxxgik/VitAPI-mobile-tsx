@@ -47,9 +47,7 @@ const AppointmentsScreen: React.FC = () => {
             } else {
               filtered = apiAppointments.filter((apt) => apt.user_id === parseInt(userId));
             }
-            // Filter for upcoming appointments (future dates)
-            const now = new Date();
-            filtered = filtered.filter((apt) => new Date(apt.appointment_date_time) > now);
+            filtered = filtered.filter((apt) => apt.status === 'scheduled');
             // Map to display format
             const displayAppointments: Appointment[] = filtered.map((apt) => {
               const dateTime = new Date(apt.appointment_date_time);
