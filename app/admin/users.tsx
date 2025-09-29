@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { apiService } from '../../src/services/api';
 
 interface User {
@@ -17,25 +17,70 @@ const UsersScreen: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [formData, setFormData] = useState({
+    entity_id: '',
+    name: '',
+    last_name: '',
+    identification: '',
+    dob: '',
+    genero: '',
+    phone: '',
+    email: '',
+  });
+
+  const fetchUsers = async () => {
+    try {
+      const response = await apiService.getPatients();
+      if (response.success) {
+        setUsers(response.data as User[]);
+      } else {
+        setError(response.message || 'Failed to fetch users');
+      }
+    } catch (error) {
+      setError('Error fetching users' + error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await apiService.getPatients();
-        if (response.success) {
-          setUsers(response.data as User[]);
-        } else {
-          setError(response.message || 'Failed to fetch users');
-        }
-      } catch (error) {
-        setError('Error fetching users' + error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUsers();
   }, []);
+
+  const handleCreatePatient = async () => {
+    try {
+      const response = await apiService.createPatient({
+        entity_id: parseInt(formData.entity_id),
+        name: formData.name,
+        last_name: formData.last_name,
+        identification: formData.identification,
+        dob: formData.dob,
+        genero: formData.genero,
+        phone: formData.phone,
+        email: formData.email,
+      });
+      if (response.success) {
+        Alert.alert('Success', 'Patient created successfully');
+        setModalVisible(false);
+        setFormData({
+          entity_id: '',
+          name: '',
+          last_name: '',
+          identification: '',
+          dob: '',
+          genero: '',
+          phone: '',
+          email: '',
+        });
+        fetchUsers(); // Refresh list
+      } else {
+        Alert.alert('Error', response.message || 'Failed to create patient');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create patient ' + error);
+    }
+  };
 
   if (loading) {
     return (
@@ -65,13 +110,85 @@ const UsersScreen: React.FC = () => {
 
   return (
     <View style={styles.content}>
-      <Text style={styles.header}>Users (Patients)</Text>
+      <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+        <Text style={styles.addButtonText}>Add New Patient</Text>
+      </TouchableOpacity>
       <FlatList
         data={users}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         ListEmptyComponent={<Text style={styles.emptyText}>No users found</Text>}
       />
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalHeader}>Add New Patient</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Entity ID"
+              value={formData.entity_id}
+              onChangeText={(text) => setFormData({ ...formData, entity_id: text })}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Name"
+              value={formData.name}
+              onChangeText={(text) => setFormData({ ...formData, name: text })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Last Name"
+              value={formData.last_name}
+              onChangeText={(text) => setFormData({ ...formData, last_name: text })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Identification"
+              value={formData.identification}
+              onChangeText={(text) => setFormData({ ...formData, identification: text })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Date of Birth (YYYY-MM-DD)"
+              value={formData.dob}
+              onChangeText={(text) => setFormData({ ...formData, dob: text })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Gender (M/F)"
+              value={formData.genero}
+              onChangeText={(text) => setFormData({ ...formData, genero: text })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Phone"
+              value={formData.phone}
+              onChangeText={(text) => setFormData({ ...formData, phone: text })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={formData.email}
+              onChangeText={(text) => setFormData({ ...formData, email: text })}
+              keyboardType="email-address"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitButton} onPress={handleCreatePatient}>
+                <Text style={styles.submitButtonText}>Create</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -92,6 +209,18 @@ const styles = StyleSheet.create({
     color: '#006d77',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  addButton: {
+    backgroundColor: '#006d77',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   item: {
     backgroundColor: '#f9f9f9',
@@ -116,6 +245,60 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 5,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  cancelButton: {
+    backgroundColor: '#ccc',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: 'black',
+    fontSize: 16,
+  },
+  submitButton: {
+    backgroundColor: '#006d77',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 16,
   },
 });
 
