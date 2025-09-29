@@ -3,10 +3,23 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Tabs, useRouter} from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../../src/contexts/UserContext';
+import { apiService } from '../../src/services/api';
 
 export default function AdminTabLayout() {
   const { user, setUser } = useUser();
   const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await apiService.logout();
+      setUser(null);
+      router.replace('/');
+    } catch (error) {
+      console.error('Logout failed', error);
+      setUser(null);
+      router.replace('/');
+    }
+  };
 
   if (!user || user.role !== 'admin') {
     return (
@@ -36,7 +49,7 @@ export default function AdminTabLayout() {
         },
         headerStatusBarHeight: 0,
         headerRight: () => (
-          <TouchableOpacity onPress={() => { setUser(null); router.replace('/'); }} style={styles.logoutButton}>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Ionicons name="log-out" size={24} color="#006d77" />
           </TouchableOpacity>
         ),
