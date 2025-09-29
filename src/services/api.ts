@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://10.2.233.19:8000/api'; // Adjust if needed
+const API_BASE_URL = 'http://192.168.1.20:8000/api'; 
 
 interface ApiResponse<T = any> {
   response_code: number;
@@ -39,12 +39,16 @@ class ApiService {
       headers.Authorization = `Bearer ${this.token}`;
     }
 
+    console.log('Making API request to:', url, 'Token present:', !!this.token);
+
     const response = await fetch(url, {
       ...options,
       headers,
     });
 
     const data: ApiResponse<T> = await response.json();
+
+    console.log('Response status:', response.status, 'Success:', data.success, 'Message:', data.message);
 
     if (!response.ok) {
       throw new Error(data.message || 'API request failed');
@@ -55,7 +59,7 @@ class ApiService {
 
   // Auth endpoints
   async login(email: string, password: string) {
-    const response = await this.request('/login', {
+    const response = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -76,14 +80,14 @@ class ApiService {
     password: string;
     role?: string;
   }) {
-    return this.request('/register', {
+    return this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   }
 
   async logout() {
-    const response = await this.request('/logout', {
+    const response = await this.request('/auth/logout', {
       method: 'GET',
     });
 
@@ -96,7 +100,7 @@ class ApiService {
 
   // Appointments endpoints
   async getAppointments() {
-    return this.request('/listAppointments');
+    return this.request('/appointments/list');
   }
 
   async createAppointment(appointmentData: {
@@ -106,7 +110,7 @@ class ApiService {
     reason: string;
     status: string;
   }) {
-    return this.request('/createAppointment', {
+    return this.request('/patients/appointments/create', {
       method: 'POST',
       body: JSON.stringify(appointmentData),
     });
@@ -119,24 +123,30 @@ class ApiService {
     reason: string;
     status: string;
   }) {
-    return this.request(`/editAppointment/${id}`, {
+    return this.request(`/appointments/edit/${id}`, {
       method: 'PUT',
       body: JSON.stringify(appointmentData),
     });
   }
 
+  async deleteAppointment(id: string) {
+    return this.request(`/appointments/delete/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Doctors endpoints
   async getDoctors() {
-    return this.request('/listDoctors');
+    return this.request('/doctors/list');
   }
 
   // Patient endpoints
   async getPatientProfile() {
-    return this.request('/showPatient');
+    return this.request('/patients/show');
   }
 
   async updatePatientProfile(profileData: any) {
-    return this.request('/editPatient', {
+    return this.request('/patients/edit', {
       method: 'PUT',
       body: JSON.stringify(profileData),
     });
