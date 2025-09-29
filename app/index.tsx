@@ -25,7 +25,11 @@ const LoginScreen: React.FC = () => {
         console.log('Login response user_info:', response.user_info);
         setUser(response.user_info);
         Alert.alert("Login successful", `Welcome back, ${response.user_info.name}`);
-        router.push(`/appointments?role=${response.user_info.role}&userId=${response.user_info.id}`);
+        if (response.user_info.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push(`/appointments?role=${response.user_info.role}&userId=${response.user_info.id}`);
+        }
       } else {
         Alert.alert("Login failed", response.message);
       }

@@ -9,6 +9,7 @@ export default function RootLayout() {
     <UserProvider>
     <Stack screenOptions={{headerShown: false}}>
      <Stack.Screen name="index" options={{headerTitle: "Login"}}/>
+     <Stack.Screen name="admin" options={{headerTitle: "Admin"}}/>
      <Stack.Screen name="create-appointment" options={{headerTitle: "Create Appointment"}}/>
      <Stack.Screen name="auth/login" options={{headerTitle: "Login"}}/>
      <Stack.Screen name="auth/register" options={{headerTitle: "Register"}}/>
