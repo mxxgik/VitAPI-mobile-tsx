@@ -222,7 +222,6 @@ const AppointmentsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Upcoming Appointments</Text>
       {role === 'patient' && (
         <TouchableOpacity style={styles.createButton} onPress={() => router.push(`/create-appointment?userId=${userId}` as any)}>
           <Text style={styles.createButtonText}>Create New Appointment</Text>

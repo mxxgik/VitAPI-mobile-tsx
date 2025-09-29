@@ -215,7 +215,6 @@ const PastAppointmentsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Past Appointments</Text>
       {loading ? (
         <Text style={styles.noAppointments}>Loading...</Text>
       ) : appointments.length === 0 ? (

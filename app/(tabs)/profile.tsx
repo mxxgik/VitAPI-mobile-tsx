@@ -21,7 +21,6 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>User Profile</Text>
       <View style={styles.profileItem}>
         <Text style={styles.label}>Name:</Text>
         <Text style={styles.value}>{name}</Text>
