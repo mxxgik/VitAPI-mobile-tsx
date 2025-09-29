@@ -144,6 +144,56 @@ const PastAppointmentsScreen: React.FC = () => {
     }
   };
 
+  const handleDelete = async (appointment: Appointment) => {
+    if (!userId) return;
+    Alert.alert(
+      'Delete Appointment',
+      'Are you sure you want to delete this appointment?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await apiService.deleteAppointment(appointment.id.toString());
+              if (response.success) {
+                Alert.alert('Success', 'Appointment deleted');
+                // Refresh the list
+                const fetchResponse = await apiService.getAppointments();
+                if (fetchResponse.success) {
+                  const apiAppointments: ApiAppointment[] = fetchResponse.data as ApiAppointment[];
+                  let filtered = apiAppointments;
+                  if (role === 'patient') {
+                    filtered = apiAppointments.filter((apt) => apt.patient_user_id === parseInt(userId));
+                  } else {
+                    filtered = apiAppointments.filter((apt) => apt.user_id === parseInt(userId));
+                  }
+                  filtered = filtered.filter((apt) => apt.status === 'cancelled' || apt.status === 'finished');
+                  const displayAppointments: Appointment[] = filtered.map((apt) => {
+                    const dateTime = new Date(apt.appointment_date_time);
+                    return {
+                      ...apt,
+                      date: dateTime.toLocaleDateString(),
+                      time: dateTime.toLocaleTimeString(),
+                      doctorName: `Doctor ${apt.user_id}`,
+                      patientName: `Patient ${apt.patient_user_id}`,
+                    };
+                  });
+                  setAppointments(displayAppointments);
+                }
+              } else {
+                Alert.alert('Failed', response.message);
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete appointment ' + error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderAppointment = ({ item }: { item: Appointment }) => (
     <View style={styles.appointmentItem}>
       <Text style={styles.date}>{item.date} at {item.time}</Text>
@@ -151,9 +201,15 @@ const PastAppointmentsScreen: React.FC = () => {
         {role === 'patient' ? `Doctor: ${item.doctorName}` : `Patient: ${item.patientName}`}
       </Text>
       <Text style={styles.status}>Status: {item.status}</Text>
-      <TouchableOpacity style={styles.editButton} onPress={() => openEditModal(item)}>
-        <Text style={styles.editButtonText}>Edit</Text>
-      </TouchableOpacity>
+      <Text style={styles.reason}>Reason: {item.reason}</Text>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.editButton} onPress={() => openEditModal(item)}>
+          <Text style={styles.editButtonText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item)}>
+          <Text style={styles.deleteButtonText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -297,14 +353,23 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 4,
   },
+  reason: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+  },
   noAppointments: {
     fontSize: 16,
     color: '#888',
     textAlign: 'center',
     marginTop: 50,
   },
-  editButton: {
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 8,
+  },
+  editButton: {
     backgroundColor: '#00a896',
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -312,6 +377,18 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   editButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    backgroundColor: '#dc3545',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  deleteButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
