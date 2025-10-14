@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { apiService } from '../../src/services/api';
 import { useUser } from '../../src/contexts/UserContext';
