@@ -1,6 +1,6 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { apiService } from '../../src/services/api';
@@ -21,6 +21,17 @@ interface Appointment {
     last_name: string;
   };
 }
+interface Patient {
+  id: number;
+  name: string;
+  last_name: string;
+}
+
+interface Doctor {
+  id: number;
+  name: string;
+  last_name: string;
+}
 
 const AppointmentsScreen: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -39,6 +50,8 @@ const AppointmentsScreen: React.FC = () => {
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
 
   const fetchAppointments = async () => {
     try {
@@ -54,10 +67,33 @@ const AppointmentsScreen: React.FC = () => {
       setLoading(false);
     }
   };
+  const fetchPatients = async () => {
+    try {
+      const response = await apiService.getPatients();
+      if (response.success) {
+        setPatients(response.data as Patient[]);
+      }
+    } catch (error) {
+      console.error('Error fetching patients', error);
+    }
+  };
+
+  const fetchDoctors = async () => {
+    try {
+      const response = await apiService.getDoctors();
+      if (response.success) {
+        setDoctors(response.data as Doctor[]);
+      }
+    } catch (error) {
+      console.error('Error fetching doctors', error);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       fetchAppointments();
+      fetchPatients();
+      fetchDoctors();
     }, [])
   );
 
@@ -209,20 +245,25 @@ const AppointmentsScreen: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalHeader}>{isEditing ? 'Edit Appointment' : 'Add New Appointment'}</Text>
-            <TextInput
+            <Picker
+              selectedValue={formData.patient_user_id}
+              onValueChange={(itemValue) => setFormData({ ...formData, patient_user_id: itemValue })}
+            >
+              <Picker.Item label="Select Patient" value="" />
+              {patients.map((patient) => (
+                <Picker.Item key={patient.id} label={`${patient.name} ${patient.last_name}`} value={patient.id.toString()} />
+              ))}
+            </Picker>
+            <Picker
+              selectedValue={formData.user_id}
+              onValueChange={(itemValue) => setFormData({ ...formData, user_id: itemValue })}
               style={styles.input}
-              placeholder="Patient User ID"
-              value={formData.patient_user_id}
-              onChangeText={(text) => setFormData({ ...formData, patient_user_id: text })}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Doctor User ID"
-              value={formData.user_id}
-              onChangeText={(text) => setFormData({ ...formData, user_id: text })}
-              keyboardType="numeric"
-            />
+            >
+              <Picker.Item label="Select Doctor" value="" />
+              {doctors.map((doctor) => (
+                <Picker.Item key={doctor.id} label={`${doctor.name} ${doctor.last_name}`} value={doctor.id.toString()} />
+              ))}
+            </Picker>
             <Text style={styles.label}>Date:</Text>
             <TouchableOpacity
               style={styles.input}
@@ -246,7 +287,6 @@ const AppointmentsScreen: React.FC = () => {
             <Picker
               selectedValue={formData.status}
               onValueChange={(itemValue) => setFormData({ ...formData, status: itemValue })}
-              style={styles.input}
             >
               <Picker.Item label="Scheduled" value="scheduled" />
               <Picker.Item label="Cancelled" value="cancelled" />
@@ -437,6 +477,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+  },
+  picker: {
+    height: 50,
+  }
 });
 
 export default AppointmentsScreen;

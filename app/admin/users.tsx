@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
@@ -16,9 +16,17 @@ interface User {
   genero: string;
 }
 
+interface Entity {
+  id: number;
+  name: string;
+  code: string;
+}
+
 const UsersScreen: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
+  const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [entitiesLoading, setEntitiesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -50,14 +58,41 @@ const UsersScreen: React.FC = () => {
     }
   };
 
+  const fetchEntities = async () => {
+    try {
+      setEntitiesLoading(true);
+      const response = await apiService.getEntities();
+      if (response.success) {
+        setEntities(response.data as Entity[]);
+      } else {
+        console.error('Failed to fetch entities:', response.message);
+      }
+    } catch (error) {
+      console.error('Error fetching entities:', error);
+    } finally {
+      setEntitiesLoading(false);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       fetchUsers();
+      fetchEntities();
     }, [])
   );
 
   const handleSubmitPatient = async () => {
     try {
+      // Validate required fields
+      if (!formData.entity_id) {
+        Alert.alert('Validation Error', 'Please select an entity');
+        return;
+      }
+      if (!formData.name || !formData.last_name || !formData.identification || !formData.email || !formData.entity_id || !formData.dob) {
+        Alert.alert('Validation Error', 'Please fill in all required fields');
+        return;
+      }
+
       const patientData = {
         entity_id: parseInt(formData.entity_id),
         name: formData.name,
@@ -197,7 +232,7 @@ const UsersScreen: React.FC = () => {
         });
         setModalVisible(true);
       }}>
-        <Text style={styles.addButtonText}>Add New Patient</Text>
+        <Text style={styles.addButtonText}>Add New User</Text>
       </TouchableOpacity>
       <FlatList
         data={users}
@@ -213,14 +248,31 @@ const UsersScreen: React.FC = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>{isEditing ? 'Edit Patient' : 'Add New Patient'}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Entity ID"
-              value={formData.entity_id}
-              onChangeText={(text) => setFormData({ ...formData, entity_id: text })}
-              keyboardType="numeric"
-            />
+            <Text style={styles.modalHeader}>{isEditing ? 'Edit User' : 'Add New User'}</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formData.entity_id}
+                onValueChange={(itemValue) => setFormData({ ...formData, entity_id: itemValue })}
+                enabled={!entitiesLoading}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select Entity" value="" />
+                {entities.map((entity) => (
+                  <Picker.Item
+                    key={entity.id}
+                    label={entity.name}
+                    value={entity.id.toString()}
+                  />
+                ))}
+              </Picker>
+              {entitiesLoading && (
+                <ActivityIndicator
+                  size="small"
+                  color="#006d77"
+                  style={{ position: 'absolute', right: 10, top: 10 }}
+                />
+              )}
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Name"
@@ -256,15 +308,17 @@ const UsersScreen: React.FC = () => {
                 maximumDate={new Date()}
               />
             )}
-            <Picker
-              selectedValue={formData.genero}
-              onValueChange={(itemValue) => setFormData({ ...formData, genero: itemValue })}
-              style={styles.input}
-            >
-              <Picker.Item label="Male" value="M" />
-              <Picker.Item label="Female" value="F" />
-              <Picker.Item label="Other" value="Otro" />
-            </Picker>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formData.genero}
+                onValueChange={(itemValue) => setFormData({ ...formData, genero: itemValue })}
+                style={styles.picker}
+              >
+                <Picker.Item label="Male" value="M" />
+                <Picker.Item label="Female" value="F" />
+                <Picker.Item label="Other" value="Otro" />
+              </Picker>
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Phone"
@@ -431,6 +485,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 10,
+    backgroundColor: '#fff',
+
+  },
+  picker: {
+    height: 50,
+  }
 });
 
 export default UsersScreen;
