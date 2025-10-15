@@ -1,6 +1,7 @@
 import { useUser } from '@/src/contexts/UserContext';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { apiService } from '../src/services/api';
 
@@ -10,6 +11,29 @@ const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { setUser } = useUser();
+
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldShowBanner: true,
+
+        shouldShowList: true,
+
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+
+    const getPermisos = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Se requieren los permisos para recibir notificaciones');
+      }
+    }
+    getPermisos();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
