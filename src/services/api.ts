@@ -1,4 +1,4 @@
-const API_BASE_URL = ''; 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 interface ApiResponse<T = any> {
   response_code: number;
@@ -149,6 +149,143 @@ class ApiService {
     return this.request('/patients/edit', {
       method: 'PUT',
       body: JSON.stringify(profileData),
+    });
+  }
+
+  // Admin endpoints
+  async getEntities() {
+    return this.request('/entities/list');
+  }
+
+  async getSpecialties() {
+    return this.request('/specialties/list');
+  }
+
+  async getPatients() {
+    return this.request('/patients/list');
+  }
+
+  async createPatient(patientData: {
+    entity_id: number;
+    name: string;
+    last_name: string;
+    identification: string;
+    dob: string;
+    genero: string;
+    phone: string;
+    email: string;
+  }) {
+    return this.request('/patients/create', {
+      method: 'POST',
+      body: JSON.stringify(patientData),
+    });
+  }
+
+  async updatePatient(id: string, patientData: {
+    entity_id: number;
+    name: string;
+    last_name: string;
+    identification: string;
+    dob: string;
+    genero: string;
+    phone: string;
+    email: string;
+  }) {
+    return this.request(`/patients/edit/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(patientData),
+    });
+  }
+
+  async createDoctor(doctorData: {
+    name: string;
+    last_name: string;
+    specialty_id: number;
+    identification: string;
+    genero: string;
+    phone: string;
+    email: string;
+  }) {
+    return this.request('/doctors/create', {
+      method: 'POST',
+      body: JSON.stringify(doctorData),
+    });
+  }
+
+  async updateDoctor(id: string, doctorData: {
+    name: string;
+    last_name: string;
+    specialty_id: number;
+    identification: string;
+    genero: string;
+    phone: string;
+    email: string;
+  }) {
+    return this.request(`/doctors/edit/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(doctorData),
+    });
+  }
+
+  async createSpecialty(specialtyData: {
+    specialty: string;
+  }) {
+    return this.request('/specialties/create', {
+      method: 'POST',
+      body: JSON.stringify(specialtyData),
+    });
+  }
+
+  async updateSpecialty(id: string, specialtyData: {
+    specialty: string;
+  }) {
+    return this.request(`/specialties/edit/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(specialtyData),
+    });
+  }
+
+  async createEntity(entityData: {
+    name: string;
+    code: string;
+  }) {
+    return this.request('/entities/create', {
+      method: 'POST',
+      body: JSON.stringify(entityData),
+    });
+  }
+
+  async updateEntity(id: string, entityData: {
+    name: string;
+    code: string;
+  }) {
+    return this.request(`/entities/edit/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(entityData),
+    });
+  }
+
+  async deletePatient(id: string) {
+    return this.request(`/patients/delete/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async deleteDoctor(id: string) {
+    return this.request(`/doctors/delete/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async deleteSpecialty(id: string) {
+    return this.request(`/specialties/delete/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async deleteEntity(id: string) {
+    return this.request(`/entities/delete/${id}`, {
+      method: 'DELETE',
     });
   }
 }
