@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 interface ApiResponse<T = any> {
@@ -21,8 +23,31 @@ class ApiService {
     return this.token;
   }
 
+  async loadToken(): Promise<string | null> {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (token) {
+        this.token = token;
+      }
+      return token;
+    } catch (error) {
+      console.error('Failed to load token:', error);
+      return null;
+    }
+  }
+
+  async saveToken(token: string) {
+    try {
+      await AsyncStorage.setItem('authToken', token);
+      this.token = token;
+    } catch (error) {
+      console.error('Failed to save token:', error);
+    }
+  }
+
   clearToken() {
     this.token = null;
+    AsyncStorage.removeItem('authToken').catch((error: any) => console.error('Failed to clear token:', error));
   }
 
   private async request<T>(
@@ -65,7 +90,7 @@ class ApiService {
     });
 
     if (response.success && response.token) {
-      this.setToken(response.token);
+      await this.saveToken(response.token);
     }
 
     return response;
