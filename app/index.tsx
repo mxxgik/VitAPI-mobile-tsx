@@ -4,6 +4,9 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { apiService } from '../src/services/api';
+import { handleApiError, showSuccessMessage } from '../src/utils/errorHandler';
+import { theme } from '../src/styles/theme';
+import { validateEmail, validateRequired } from '../src/utils/validation';
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -36,10 +39,15 @@ const LoginScreen: React.FC = () => {
   }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!validateRequired(email) || !validateRequired(password)) {
       Alert.alert("Missing fields", "Please enter email and password");
       return;
     }
+    if (!validateEmail(email)) {
+      Alert.alert("Invalid email", "Please enter a valid email address");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -48,7 +56,7 @@ const LoginScreen: React.FC = () => {
       if (response.success) {
         console.log('Login response user_info:', response.user_info);
         setUser(response.user_info);
-        Alert.alert("Login successful", `Welcome back, ${response.user_info.name}`);
+        showSuccessMessage(`Welcome back, ${response.user_info.name}`);
         if (response.user_info.role === 'admin') {
           router.push('/admin');
         } else {
@@ -59,7 +67,7 @@ const LoginScreen: React.FC = () => {
       }
     } catch (error) {
       setLoading(false);
-      Alert.alert("Login failed", "An error occurred" + error);
+      handleApiError(error, "Login failed");
     }
   };
 
@@ -105,51 +113,51 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f6fbfc",
+    backgroundColor: theme.colors.background,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: theme.spacing.lg,
   },
   title: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#006d77",
-    marginBottom: 6,
+    fontSize: theme.fontSize.xxl,
+    fontWeight: theme.fontWeight.bold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#555",
-    marginBottom: 24,
+    fontSize: theme.fontSize.md,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.xl,
   },
   input: {
     width: "100%",
     height: 48,
-    borderColor: "#ccc",
+    borderColor: theme.colors.border,
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-    backgroundColor: "#fff",
-    fontSize: 16,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    fontSize: theme.fontSize.md,
   },
   button: {
     width: "100%",
-    backgroundColor: "#00a896",
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
     alignItems: "center",
-    marginTop: 4,
-    marginBottom: 18,
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.xl,
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
+    color: theme.colors.surface,
+    fontSize: theme.fontSize.lg,
+    fontWeight: theme.fontWeight.semibold,
   },
   link: {
-    color: "#0077b6",
-    fontSize: 15,
-    marginTop: 6,
+    color: theme.colors.secondary,
+    fontSize: theme.fontSize.sm,
+    marginTop: theme.spacing.xs,
   },
 });
 
