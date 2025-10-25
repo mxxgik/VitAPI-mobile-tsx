@@ -1,12 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import { Tabs, useRouter} from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUser } from '../../src/contexts/UserContext';
+import AuthGuard from '../../src/components/AuthGuard';
 import { apiService } from '../../src/services/api';
+import { useUser } from '../../src/contexts/UserContext';
+import { theme } from '../../src/styles/theme';
+import { handleApiError } from '../../src/utils/errorHandler';
 
-export default function AdminTabLayout() {
-  const { user, setUser } = useUser();
+function AdminTabLayoutContent() {
+  const { setUser } = useUser();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -15,42 +18,38 @@ export default function AdminTabLayout() {
       setUser(null);
       router.replace('/');
     } catch (error) {
-      console.error('Logout failed', error);
+      handleApiError(error, 'Logout failed');
       setUser(null);
       router.replace('/');
     }
   };
 
-  if (!user || user.role !== 'admin') {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Access Denied</Text>
-        <Text style={styles.subtitle}>Administrator access required</Text>
-      </View>
-    );
-  }
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#00a896',
-        tabBarInactiveTintColor: '#888',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textLight,
         tabBarStyle: {
-          backgroundColor: '#f6fbfc',
-          borderTopColor: '#ccc',
+          backgroundColor: theme.colors.background,
+          borderTopColor: theme.colors.border,
           borderTopWidth: 1,
         },
         headerStyle: {
-          backgroundColor: '#f6fbfc',
+          backgroundColor: theme.colors.background,
         },
-        headerTintColor: '#006d77',
+        headerTintColor: theme.colors.text,
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: theme.fontWeight.bold,
         },
         headerStatusBarHeight: 0,
         headerRight: () => (
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out" size={24} color="#006d77" />
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={{ marginRight: theme.spacing.md }}
+            accessibilityLabel="Logout"
+            accessibilityHint="Logs out the current user"
+          >
+            <Ionicons name="log-out" size={24} color={theme.colors.text} />
           </TouchableOpacity>
         ),
       }}
@@ -101,26 +100,10 @@ export default function AdminTabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f6fbfc',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#006d77',
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#888',
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  logoutButton: {
-    marginRight: 15,
-  },
-});
+export default function AdminTabLayout() {
+  return (
+    <AuthGuard requireRole="admin">
+      <AdminTabLayoutContent />
+    </AuthGuard>
+  );
+}
