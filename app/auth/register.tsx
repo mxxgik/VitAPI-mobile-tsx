@@ -2,6 +2,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiService } from '../../src/services/api';
 
 const RegisterScreen: React.FC = () => {
@@ -13,11 +14,14 @@ const RegisterScreen: React.FC = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState('patient');
+  const [dob, setDob] = useState("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleRegister = async () => {
-    if (!firstName || !lastName || !email || !phone || !password || !confirmPassword || !identification) {
+    if (!firstName || !lastName || !email || !phone || !password || !confirmPassword || !identification || !dob) {
       Alert.alert("Missing fields", "Please complete all fields.");
       return;
     }
@@ -32,11 +36,12 @@ const RegisterScreen: React.FC = () => {
       const response = await apiService.register({
         name: firstName,
         last_name: lastName,
-        identification, 
+        identification,
         phone,
         email,
         password,
         role,
+        dob,
       });
       setLoading(false);
       if (response.success) {
@@ -98,6 +103,31 @@ const RegisterScreen: React.FC = () => {
         value={phone}
         onChangeText={setPhone}
       />
+
+      <TouchableOpacity
+        style={styles.input}
+        onPress={() => setShowDatePicker(true)}
+      >
+        <Text style={{ color: dob ? '#000' : '#999' }}>
+          {dob || 'Select Date of Birth'}
+        </Text>
+      </TouchableOpacity>
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display="default"
+          onChange={(event, date) => {
+            setShowDatePicker(false);
+            if (date) {
+              setSelectedDate(date);
+              const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+              setDob(formattedDate);
+            }
+          }}
+          maximumDate={new Date()}
+        />
+      )}
 
       <TextInput
         style={styles.input}
