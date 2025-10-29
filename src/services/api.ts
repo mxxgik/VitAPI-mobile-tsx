@@ -165,12 +165,41 @@ class ApiService {
     return this.request('/doctors/list');
   }
 
+  async updateOwnDoctorProfile(profileData: {
+    name?: string;
+    last_name?: string;
+    identification?: string;
+    genero?: string;
+    phone?: string;
+    email?: string;
+  }) {
+    return this.request('/doctors/edit', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  }
+
   // Patient endpoints
   async getPatientProfile() {
     return this.request('/patients/show');
   }
 
   async updatePatientProfile(profileData: any) {
+    return this.request('/patients/edit', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  }
+
+  async updateOwnProfile(profileData: {
+    name?: string;
+    last_name?: string;
+    identification?: string;
+    dob?: string;
+    genero?: string;
+    phone?: string;
+    email?: string;
+  }) {
     return this.request('/patients/edit', {
       method: 'PUT',
       body: JSON.stringify(profileData),
@@ -191,7 +220,7 @@ class ApiService {
   }
 
   async createPatient(patientData: {
-    entity_id: number;
+    entity_id: number | null;
     name: string;
     last_name: string;
     identification: string;
@@ -207,7 +236,7 @@ class ApiService {
   }
 
   async updatePatient(id: string, patientData: {
-    entity_id: number;
+    entity_id: number | null;
     name: string;
     last_name: string;
     identification: string;
