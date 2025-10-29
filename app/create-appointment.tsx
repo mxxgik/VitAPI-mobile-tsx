@@ -3,8 +3,8 @@ import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { apiService } from '../src/services/api';
 import { useUser } from '../src/contexts/UserContext';
+import { apiService } from '../src/services/api';
 
 interface Doctor {
   id: number;
@@ -57,9 +57,23 @@ const CreateAppointmentScreen: React.FC = () => {
       return;
     }
 
+    // Validate that the appointment date and time is not in the past
+    const now = new Date();
+    const appointmentDateTime = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      selectedTime.getHours(),
+      selectedTime.getMinutes()
+    );
+    if (appointmentDateTime < now) {
+      Alert.alert('Invalid Date', 'Cannot schedule an appointment in the past');
+      return;
+    }
+
     setLoading(true);
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
       const timeStr = selectedTime.toTimeString().split(' ')[0].substring(0, 5);
       const appointmentDateTime = `${dateStr} ${timeStr}`;
       console.log('Appointment DateTime:', appointmentDateTime);

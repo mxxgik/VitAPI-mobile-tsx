@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import { apiService } from '../services/api';
-import { handleApiError, showSuccessMessage } from '../utils/errorHandler';
-import { theme } from '../styles/theme';
+import React, { useState } from 'react';
+import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Appointment } from '../hooks/useAppointments';
+import { apiService } from '../services/api';
+import { theme } from '../styles/theme';
+import { handleApiError, showSuccessMessage } from '../utils/errorHandler';
 
 interface AppointmentModalProps {
   visible: boolean;
@@ -32,7 +32,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
   React.useEffect(() => {
     if (appointment && visible) {
-      const dateTime = new Date(appointment.appointment_date_time);
+      const dateTime = new Date(appointment.appointment_date_time + 'Z'); // Treat as UTC
       setEditDate(dateTime);
       setEditTime(dateTime);
       setEditReason(appointment.reason);
@@ -44,7 +44,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     if (!appointment) return;
     setUpdating(true);
     try {
-      const dateStr = editDate.toISOString().split('T')[0];
+      const dateStr = `${editDate.getFullYear()}-${String(editDate.getMonth() + 1).padStart(2, '0')}-${String(editDate.getDate()).padStart(2, '0')}`;
       const timeStr = editTime.toTimeString().split(' ')[0].substring(0, 5);
       const appointmentDateTime = `${dateStr} ${timeStr}`;
       const response = await apiService.updateAppointment(appointment.id.toString(), {

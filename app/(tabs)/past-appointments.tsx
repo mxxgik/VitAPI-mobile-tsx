@@ -1,6 +1,6 @@
+import { useUser } from '@/src/contexts/UserContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import { useUser } from '@/src/contexts/UserContext';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -94,7 +94,7 @@ const PastAppointmentsScreen: React.FC = () => {
 
   const openEditModal = (appointment: Appointment) => {
     setEditingAppointment(appointment);
-    const dateTime = new Date(appointment.appointment_date_time);
+    const dateTime = new Date(appointment.appointment_date_time + 'Z'); // Treat as UTC
     setEditDate(dateTime);
     setEditTime(dateTime);
     setEditReason(appointment.reason);
@@ -106,7 +106,7 @@ const PastAppointmentsScreen: React.FC = () => {
     if (!editingAppointment || !userId) return;
     setUpdating(true);
     try {
-      const dateStr = editDate.toISOString().split('T')[0];
+      const dateStr = `${editDate.getFullYear()}-${String(editDate.getMonth() + 1).padStart(2, '0')}-${String(editDate.getDate()).padStart(2, '0')}`;
       const timeStr = editTime.toTimeString().split(' ')[0].substring(0, 5);
       const appointmentDateTime = `${dateStr} ${timeStr}`;
       const response = await apiService.updateAppointment(editingAppointment.id.toString(), {

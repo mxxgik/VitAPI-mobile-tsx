@@ -1,8 +1,8 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { apiService } from '../../src/services/api';
 
 interface Appointment {
@@ -99,7 +99,7 @@ const AppointmentsScreen: React.FC = () => {
 
   const handleSubmitAppointment = async () => {
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
       const timeStr = selectedTime.toTimeString().split(' ')[0].substring(0, 5);
       const appointmentDateTime = `${dateStr} ${timeStr}`;
       const appointmentData = {
@@ -145,7 +145,7 @@ const AppointmentsScreen: React.FC = () => {
       reason: item.reason,
       status: item.status,
     });
-    const dateTime = new Date(item.appointment_date_time);
+    const dateTime = new Date(item.appointment_date_time + 'Z'); // Treat as UTC
     setSelectedDate(dateTime);
     setSelectedTime(dateTime);
     setModalVisible(true);
