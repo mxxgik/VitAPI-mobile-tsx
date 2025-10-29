@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { apiService } from '../../src/services/api';
 
 interface User {
@@ -14,6 +14,8 @@ interface User {
   phone: string;
   role: string;
   genero: string;
+  entity_id?: number | null;
+  dob?: string;
 }
 
 interface Entity {
@@ -84,17 +86,13 @@ const UsersScreen: React.FC = () => {
   const handleSubmitPatient = async () => {
     try {
       // Validate required fields
-      if (!formData.entity_id) {
-        Alert.alert('Validation Error', 'Please select an entity');
-        return;
-      }
-      if (!formData.name || !formData.last_name || !formData.identification || !formData.email || !formData.entity_id || !formData.dob) {
+      if (!formData.name || !formData.last_name || !formData.identification || !formData.email || !formData.dob) {
         Alert.alert('Validation Error', 'Please fill in all required fields');
         return;
       }
 
       const patientData = {
-        entity_id: parseInt(formData.entity_id),
+        entity_id: formData.entity_id && formData.entity_id !== 'null' ? parseInt(formData.entity_id) : null,
         name: formData.name,
         last_name: formData.last_name,
         identification: formData.identification,
@@ -134,11 +132,11 @@ const UsersScreen: React.FC = () => {
     setIsEditing(true);
     setEditingItem(item);
     setFormData({
-      entity_id: '', // Not available in item
+      entity_id: item.entity_id ? item.entity_id.toString() : '',
       name: item.name,
       last_name: item.last_name,
       identification: item.identification,
-      dob: '', // Not available
+      dob: item.dob || '',
       genero: item.genero,
       phone: item.phone,
       email: item.email,
@@ -148,7 +146,7 @@ const UsersScreen: React.FC = () => {
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     if (event.type === 'set' && selectedDate) {
-      const formattedDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const formattedDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`; // YYYY-MM-DD format
       setFormData({ ...formData, dob: formattedDate });
     }
     setShowDatePicker(false);
@@ -257,6 +255,7 @@ const UsersScreen: React.FC = () => {
                 style={styles.picker}
               >
                 <Picker.Item label="Select Entity" value="" />
+                <Picker.Item label="No Affiliation" value="null" />
                 {entities.map((entity) => (
                   <Picker.Item
                     key={entity.id}
@@ -301,7 +300,7 @@ const UsersScreen: React.FC = () => {
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
-                value={formData.dob ? new Date(formData.dob) : new Date()}
+                value={formData.dob ? new Date(formData.dob + 'T00:00:00') : new Date()}
                 mode="date"
                 display="default"
                 onChange={onDateChange}
