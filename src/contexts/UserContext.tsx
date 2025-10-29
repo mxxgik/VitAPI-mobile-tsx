@@ -1,7 +1,7 @@
-import React, { createContext, ReactNode, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
-interface UserInfo {
+export interface UserInfo {
   id: number;
   role: string;
   name: string;
@@ -11,6 +11,8 @@ interface UserInfo {
   phone?: string;
   dob?: string;
   genero?: string;
+  entity_id?: number;
+  specialty_id?: number;
 }
 
 interface UserContextType {
