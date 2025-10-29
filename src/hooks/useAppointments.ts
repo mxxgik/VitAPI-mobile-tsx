@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { apiService } from '../services/api';
 import { handleApiError } from '../utils/errorHandler';
+import { scheduleAppointmentNotification } from '../utils/notificationService';
 
 export interface ApiAppointment {
   id: number;
@@ -54,6 +55,15 @@ export const useAppointments = (userId?: string, role?: string) => {
           };
         });
         setAppointments(displayAppointments);
+
+        // Schedule notifications for future appointments
+        const now = new Date();
+        for (const apt of displayAppointments) {
+          const appointmentTime = new Date(apt.appointment_date_time);
+          if (appointmentTime > now) {
+            await scheduleAppointmentNotification(apt.id, apt.appointment_date_time, apt.doctorName);
+          }
+        }
       }
     } catch (error) {
       handleApiError(error, 'Failed to fetch appointments');

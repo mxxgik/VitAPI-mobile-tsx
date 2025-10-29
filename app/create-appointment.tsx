@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useUser } from '../src/contexts/UserContext';
 import { apiService } from '../src/services/api';
+import { scheduleAppointmentNotification } from '../src/utils/notificationService';
 
 interface Doctor {
   id: number;
@@ -86,6 +87,12 @@ const CreateAppointmentScreen: React.FC = () => {
       });
       setLoading(false);
       if (response.success) {
+        // Schedule notification for the new appointment
+        const selectedDoctorData = doctors.find(d => d.id === selectedDoctor);
+        const doctorName = selectedDoctorData ? `${selectedDoctorData.name} ${selectedDoctorData.last_name}` : 'Doctor';
+        const appointmentId = (response.data as { id: number }).id;
+        await scheduleAppointmentNotification(appointmentId, appointmentDateTime, doctorName);
+
         Alert.alert('Success', 'Appointment created');
         router.back();
       } else {
