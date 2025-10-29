@@ -65,6 +65,8 @@ class ApiService {
     }
 
     console.log('Making API request to:', url, 'Token present:', !!this.token);
+    console.log('Request method:', options.method || 'GET');
+    console.log('Request body:', options.body);
 
     const response = await fetch(url, {
       ...options,
@@ -104,6 +106,7 @@ class ApiService {
     email: string;
     password: string;
     role?: string;
+    dob?: string;
   }) {
     return this.request('/auth/register', {
       method: 'POST',
@@ -165,6 +168,10 @@ class ApiService {
     return this.request('/doctors/list');
   }
 
+  async getDoctorProfile() {
+    return this.request('/doctors/show');
+  }
+
   async updateOwnDoctorProfile(profileData: {
     name?: string;
     last_name?: string;
@@ -172,6 +179,7 @@ class ApiService {
     genero?: string;
     phone?: string;
     email?: string;
+    dob?: string;
   }) {
     return this.request('/doctors/edit', {
       method: 'PUT',
