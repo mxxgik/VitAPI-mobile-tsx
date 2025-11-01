@@ -73,7 +73,7 @@ const LoginScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Healthcare Login</Text>
+      <Text style={styles.title}>VITA Login</Text>
       <Text style={styles.subtitle}>Access your appointments</Text>
 
       <TextInput

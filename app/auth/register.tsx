@@ -1,8 +1,8 @@
 
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiService } from '../../src/services/api';
 
 const RegisterScreen: React.FC = () => {
@@ -58,7 +58,7 @@ const RegisterScreen: React.FC = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Create Healthcare Account</Text>
+      <Text style={styles.title}>Create VITA Account</Text>
       <Text style={styles.subtitle}>Join to manage appointments and records</Text>
 
       <TextInput
