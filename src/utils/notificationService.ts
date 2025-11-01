@@ -1,5 +1,5 @@
-import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 const NOTIFICATION_STORAGE_KEY = 'scheduled_notifications';
