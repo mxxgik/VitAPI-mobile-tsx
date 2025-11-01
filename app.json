@@ -36,7 +36,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/pngtree-green-cross-sign-emblem-bunting-png-image_13522768.png"
+        }
+      ],
       [
         "expo-splash-screen",
         {
