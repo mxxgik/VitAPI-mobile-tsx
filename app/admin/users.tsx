@@ -43,6 +43,7 @@ const UsersScreen: React.FC = () => {
     genero: '',
     phone: '',
     email: '',
+    role: '',
   });
 
   const fetchUsers = async () => {
@@ -86,7 +87,7 @@ const UsersScreen: React.FC = () => {
   const handleSubmitPatient = async () => {
     try {
       // Validate required fields
-      if (!formData.name || !formData.last_name || !formData.identification || !formData.email || !formData.dob) {
+      if (!formData.name || !formData.last_name || !formData.identification || !formData.email || !formData.dob || !formData.role) {
         Alert.alert('Validation Error', 'Please fill in all required fields');
         return;
       }
@@ -100,6 +101,7 @@ const UsersScreen: React.FC = () => {
         genero: formData.genero,
         phone: formData.phone,
         email: formData.email,
+        role: formData.role,
       };
       const response = isEditing && editingItem
         ? await apiService.updatePatient(editingItem.id.toString(), patientData)
@@ -118,6 +120,7 @@ const UsersScreen: React.FC = () => {
           genero: '',
           phone: '',
           email: '',
+          role: '',
         });
         fetchUsers(); // Refresh list
       } else {
@@ -140,13 +143,14 @@ const UsersScreen: React.FC = () => {
       genero: item.genero,
       phone: item.phone,
       email: item.email,
+      role: item.role,
     });
     setModalVisible(true);
   };
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     if (event.type === 'set' && selectedDate) {
-      const formattedDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`; // YYYY-MM-DD format
+      const formattedDate = `${selectedDate.getUTCFullYear()}-${String(selectedDate.getUTCMonth() + 1).padStart(2, '0')}-${String(selectedDate.getUTCDate()).padStart(2, '0')}`; // YYYY-MM-DD format
       setFormData({ ...formData, dob: formattedDate });
     }
     setShowDatePicker(false);
@@ -202,6 +206,7 @@ const UsersScreen: React.FC = () => {
       <Text>Phone: {item.phone}</Text>
       <Text>Identification: {item.identification}</Text>
       <Text>Gender: {item.genero}</Text>
+      <Text>Role: {item.role}</Text>
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.editButton} onPress={() => handleEditPatient(item)}>
           <Text style={styles.editButtonText}>Edit</Text>
@@ -227,6 +232,7 @@ const UsersScreen: React.FC = () => {
           genero: '',
           phone: '',
           email: '',
+          role: '',
         });
         setModalVisible(true);
       }}>
@@ -331,6 +337,18 @@ const UsersScreen: React.FC = () => {
               onChangeText={(text) => setFormData({ ...formData, email: text })}
               keyboardType="email-address"
             />
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formData.role}
+                onValueChange={(itemValue) => setFormData({ ...formData, role: itemValue })}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select Role" value="" />
+                <Picker.Item label="Patient" value="patient" />
+                <Picker.Item label="Doctor" value="doctor" />
+                <Picker.Item label="Admin" value="admin" />
+              </Picker>
+            </View>
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>

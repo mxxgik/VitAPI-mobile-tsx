@@ -74,8 +74,8 @@ const CreateAppointmentScreen: React.FC = () => {
 
     setLoading(true);
     try {
-      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-      const timeStr = selectedTime.toTimeString().split(' ')[0].substring(0, 5);
+      const dateStr = `${selectedDate.getUTCFullYear()}-${String(selectedDate.getUTCMonth() + 1).padStart(2, '0')}-${String(selectedDate.getUTCDate()).padStart(2, '0')}`;
+      const timeStr = selectedTime.toISOString().split('T')[1].substring(0, 5);
       const appointmentDateTime = `${dateStr} ${timeStr}`;
       console.log('Appointment DateTime:', appointmentDateTime);
       const response = await apiService.createAppointment({

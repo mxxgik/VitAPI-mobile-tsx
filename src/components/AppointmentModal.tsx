@@ -44,8 +44,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     if (!appointment) return;
     setUpdating(true);
     try {
-      const dateStr = `${editDate.getFullYear()}-${String(editDate.getMonth() + 1).padStart(2, '0')}-${String(editDate.getDate()).padStart(2, '0')}`;
-      const timeStr = editTime.toTimeString().split(' ')[0].substring(0, 5);
+      const dateStr = `${editDate.getUTCFullYear()}-${String(editDate.getUTCMonth() + 1).padStart(2, '0')}-${String(editDate.getUTCDate()).padStart(2, '0')}`;
+      const timeStr = editTime.toISOString().split('T')[1].substring(0, 5);
       const appointmentDateTime = `${dateStr} ${timeStr}`;
       const response = await apiService.updateAppointment(appointment.id.toString(), {
         patient_user_id: appointment.patient_user_id,

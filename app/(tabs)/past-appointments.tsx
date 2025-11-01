@@ -1,7 +1,7 @@
 import { useUser } from '@/src/contexts/UserContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { apiService } from '../../src/services/api';
@@ -43,7 +43,6 @@ const PastAppointmentsScreen: React.FC = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const router = useRouter();
 
   const role = user?.role;
   const userId = user?.id?.toString();
@@ -70,7 +69,7 @@ const PastAppointmentsScreen: React.FC = () => {
             filtered = filtered.filter((apt) => apt.status === 'cancelled' || apt.status === 'finished');
             // Map to display format
             const displayAppointments: Appointment[] = filtered.map((apt) => {
-              const dateTime = new Date(apt.appointment_date_time);
+              const dateTime = new Date(apt.appointment_date_time + 'Z');
               return {
                 ...apt,
                 date: dateTime.toLocaleDateString(),
@@ -106,8 +105,8 @@ const PastAppointmentsScreen: React.FC = () => {
     if (!editingAppointment || !userId) return;
     setUpdating(true);
     try {
-      const dateStr = `${editDate.getFullYear()}-${String(editDate.getMonth() + 1).padStart(2, '0')}-${String(editDate.getDate()).padStart(2, '0')}`;
-      const timeStr = editTime.toTimeString().split(' ')[0].substring(0, 5);
+      const dateStr = `${editDate.getUTCFullYear()}-${String(editDate.getUTCMonth() + 1).padStart(2, '0')}-${String(editDate.getUTCDate()).padStart(2, '0')}`;
+      const timeStr = editTime.toISOString().split('T')[1].substring(0, 5);
       const appointmentDateTime = `${dateStr} ${timeStr}`;
       const response = await apiService.updateAppointment(editingAppointment.id.toString(), {
         patient_user_id: editingAppointment.patient_user_id,
@@ -132,7 +131,7 @@ const PastAppointmentsScreen: React.FC = () => {
           }
           filtered = filtered.filter((apt) => apt.status === 'cancelled' || apt.status === 'finished');
           const displayAppointments: Appointment[] = filtered.map((apt) => {
-            const dateTime = new Date(apt.appointment_date_time);
+            const dateTime = new Date(apt.appointment_date_time + 'Z');
             return {
               ...apt,
               date: dateTime.toLocaleDateString(),
@@ -179,7 +178,7 @@ const PastAppointmentsScreen: React.FC = () => {
                   }
                   filtered = filtered.filter((apt) => apt.status === 'cancelled' || apt.status === 'finished');
                   const displayAppointments: Appointment[] = filtered.map((apt) => {
-                    const dateTime = new Date(apt.appointment_date_time);
+                    const dateTime = new Date(apt.appointment_date_time + 'Z');
                     return {
                       ...apt,
                       date: dateTime.toLocaleDateString(),

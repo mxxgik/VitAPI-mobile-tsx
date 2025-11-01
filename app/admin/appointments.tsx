@@ -99,8 +99,8 @@ const AppointmentsScreen: React.FC = () => {
 
   const handleSubmitAppointment = async () => {
     try {
-      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-      const timeStr = selectedTime.toTimeString().split(' ')[0].substring(0, 5);
+      const dateStr = `${selectedDate.getUTCFullYear()}-${String(selectedDate.getUTCMonth() + 1).padStart(2, '0')}-${String(selectedDate.getUTCDate()).padStart(2, '0')}`;
+      const timeStr = selectedTime.toISOString().split('T')[1].substring(0, 5);
       const appointmentDateTime = `${dateStr} ${timeStr}`;
       const appointmentData = {
         patient_user_id: parseInt(formData.patient_user_id),
@@ -199,7 +199,7 @@ const AppointmentsScreen: React.FC = () => {
       <Text style={styles.itemTitle}>
         {item.patient.name} {item.patient.last_name} - {item.user.name} {item.user.last_name}
       </Text>
-      <Text>Date: {new Date(item.appointment_date_time).toLocaleString()}</Text>
+      <Text>Date: {new Date(item.appointment_date_time + 'Z').toLocaleString()}</Text>
       <Text>Reason: {item.reason}</Text>
       <Text>Status: {item.status}</Text>
       <View style={styles.buttonContainer}>
