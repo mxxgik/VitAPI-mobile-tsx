@@ -224,7 +224,7 @@ class ApiService {
   }
 
   async getPatients() {
-    return this.request('/patients/list');
+    return this.request('/patients/listAll');
   }
 
   async createPatient(patientData: {
@@ -236,6 +236,7 @@ class ApiService {
     genero: string;
     phone: string;
     email: string;
+    role: string;
   }) {
     return this.request('/patients/create', {
       method: 'POST',
@@ -252,6 +253,7 @@ class ApiService {
     genero: string;
     phone: string;
     email: string;
+    role: string;
   }) {
     return this.request(`/patients/edit/${id}`, {
       method: 'PUT',
