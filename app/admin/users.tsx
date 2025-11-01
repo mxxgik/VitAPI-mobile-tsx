@@ -44,6 +44,7 @@ const UsersScreen: React.FC = () => {
     phone: '',
     email: '',
     role: '',
+    password: '',
   });
 
   const fetchUsers = async () => {
@@ -92,42 +93,81 @@ const UsersScreen: React.FC = () => {
         return;
       }
 
-      const patientData = {
-        entity_id: formData.entity_id && formData.entity_id !== 'null' ? parseInt(formData.entity_id) : null,
-        name: formData.name,
-        last_name: formData.last_name,
-        identification: formData.identification,
-        dob: formData.dob,
-        genero: formData.genero,
-        phone: formData.phone,
-        email: formData.email,
-        role: formData.role,
-      };
-      const response = isEditing && editingItem
-        ? await apiService.updatePatient(editingItem.id.toString(), patientData)
-        : await apiService.createPatient(patientData);
-      if (response.success) {
-        Alert.alert('Success', `Patient ${isEditing ? 'updated' : 'created'} successfully`);
-        setModalVisible(false);
-        setIsEditing(false);
-        setEditingItem(null);
-        setFormData({
-          entity_id: '',
-          name: '',
-          last_name: '',
-          identification: '',
-          dob: '',
-          genero: '',
-          phone: '',
-          email: '',
-          role: '',
-        });
-        fetchUsers(); // Refresh list
+      if (!isEditing && !formData.password) {
+        Alert.alert('Validation Error', 'Password is required for new users');
+        return;
+      }
+
+      if (isEditing && editingItem) {
+        const patientData = {
+          entity_id: formData.entity_id && formData.entity_id !== 'null' ? parseInt(formData.entity_id) : null,
+          name: formData.name,
+          last_name: formData.last_name,
+          identification: formData.identification,
+          dob: formData.dob,
+          genero: formData.genero,
+          phone: formData.phone,
+          email: formData.email,
+          role: formData.role,
+        };
+        const response = await apiService.updatePatient(editingItem.id.toString(), patientData);
+        if (response.success) {
+          Alert.alert('Success', 'User updated successfully');
+          setModalVisible(false);
+          setIsEditing(false);
+          setEditingItem(null);
+          setFormData({
+            entity_id: '',
+            name: '',
+            last_name: '',
+            identification: '',
+            dob: '',
+            genero: '',
+            phone: '',
+            email: '',
+            role: '',
+            password: '',
+          });
+          fetchUsers(); // Refresh list
+        } else {
+          Alert.alert('Error', response.message || 'Failed to update user');
+        }
       } else {
-        Alert.alert('Error', response.message || `Failed to ${isEditing ? 'update' : 'create'} patient`);
+        const registerData = {
+          name: formData.name,
+          last_name: formData.last_name,
+          identification: formData.identification,
+          dob: formData.dob,
+          phone: formData.phone,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+        };
+        const response = await apiService.register(registerData);
+        if (response.success) {
+          Alert.alert('Success', 'User created successfully');
+          setModalVisible(false);
+          setIsEditing(false);
+          setEditingItem(null);
+          setFormData({
+            entity_id: '',
+            name: '',
+            last_name: '',
+            identification: '',
+            dob: '',
+            genero: '',
+            phone: '',
+            email: '',
+            role: '',
+            password: '',
+          });
+          fetchUsers(); // Refresh list
+        } else {
+          Alert.alert('Error', response.message || 'Failed to create user');
+        }
       }
     } catch (error) {
-      Alert.alert('Error', `Failed to ${isEditing ? 'update' : 'create'} patient ` + error);
+      Alert.alert('Error', `Failed to ${isEditing ? 'update' : 'create'} user ` + error);
     }
   };
 
@@ -144,6 +184,7 @@ const UsersScreen: React.FC = () => {
       phone: item.phone,
       email: item.email,
       role: item.role,
+      password: '',
     });
     setModalVisible(true);
   };
@@ -233,6 +274,7 @@ const UsersScreen: React.FC = () => {
           phone: '',
           email: '',
           role: '',
+          password: '',
         });
         setModalVisible(true);
       }}>
@@ -337,6 +379,15 @@ const UsersScreen: React.FC = () => {
               onChangeText={(text) => setFormData({ ...formData, email: text })}
               keyboardType="email-address"
             />
+            {!isEditing && (
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                value={formData.password}
+                onChangeText={(text) => setFormData({ ...formData, password: text })}
+                secureTextEntry
+              />
+            )}
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={formData.role}
