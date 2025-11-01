@@ -69,7 +69,7 @@ const PastAppointmentsScreen: React.FC = () => {
             filtered = filtered.filter((apt) => apt.status === 'cancelled' || apt.status === 'finished');
             // Map to display format
             const displayAppointments: Appointment[] = filtered.map((apt) => {
-              const dateTime = new Date(apt.appointment_date_time + 'Z');
+              const dateTime = new Date(apt.appointment_date_time);
               return {
                 ...apt,
                 date: dateTime.toLocaleDateString(),
@@ -93,7 +93,7 @@ const PastAppointmentsScreen: React.FC = () => {
 
   const openEditModal = (appointment: Appointment) => {
     setEditingAppointment(appointment);
-    const dateTime = new Date(appointment.appointment_date_time + 'Z'); // Treat as UTC
+    const dateTime = new Date(appointment.appointment_date_time);
     setEditDate(dateTime);
     setEditTime(dateTime);
     setEditReason(appointment.reason);
@@ -105,8 +105,8 @@ const PastAppointmentsScreen: React.FC = () => {
     if (!editingAppointment || !userId) return;
     setUpdating(true);
     try {
-      const dateStr = `${editDate.getUTCFullYear()}-${String(editDate.getUTCMonth() + 1).padStart(2, '0')}-${String(editDate.getUTCDate()).padStart(2, '0')}`;
-      const timeStr = editTime.toISOString().split('T')[1].substring(0, 5);
+      const dateStr = `${editDate.getFullYear()}-${String(editDate.getMonth() + 1).padStart(2, '0')}-${String(editDate.getDate()).padStart(2, '0')}`;
+      const timeStr = editTime.toTimeString().split(' ')[0].substring(0, 5);
       const appointmentDateTime = `${dateStr} ${timeStr}`;
       const response = await apiService.updateAppointment(editingAppointment.id.toString(), {
         patient_user_id: editingAppointment.patient_user_id,

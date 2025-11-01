@@ -150,7 +150,7 @@ const UsersScreen: React.FC = () => {
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     if (event.type === 'set' && selectedDate) {
-      const formattedDate = `${selectedDate.getUTCFullYear()}-${String(selectedDate.getUTCMonth() + 1).padStart(2, '0')}-${String(selectedDate.getUTCDate()).padStart(2, '0')}`; // YYYY-MM-DD format
+      const formattedDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`; // YYYY-MM-DD format
       setFormData({ ...formData, dob: formattedDate });
     }
     setShowDatePicker(false);
